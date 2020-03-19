@@ -7,7 +7,7 @@ import h5py
 import torch
 
 class MLMLoader(data.Dataset):
-    def __init__(self, data_path, partition):
+    def __init__(self, data_path, partition, mismatch=0.8):
 
         if data_path == None:
             raise Exception('No data path specified.')
@@ -19,13 +19,13 @@ class MLMLoader(data.Dataset):
 
         self.h5f = h5py.File(os.path.join(data_path, f'{partition}_pilot.h5'), 'r')
 
-        self.ids = self.h5f['keys']
-        self.mismtch = 0.8
+        self.ids = self.h5f['ids']
+        self.mismatch = mismatch
 
     def __getitem__(self, index):
         instanceId = self.ids[index]
         # we force 80 percent of them to be a mismatch
-        match = np.random.uniform() > self.mismtch if self.partition == 'train' else True
+        match = np.random.uniform() > self.mismatch if self.partition == 'train' else True
 
         target = match and 1 or -1
 
@@ -70,16 +70,14 @@ class MLMLoader(data.Dataset):
             'en_wiki': en_wiki,
             'fr_wiki': fr_wiki,
             'de_wiki': de_wiki,
+            'triple': np.zeros((2048), dtype='float32'), # later we replace
             'target': target
         }
+
+        if self.partition != 'train':
+            output['id'] = instanceId
+
         return output
 
     def __len__(self):
         return len(self.ids)
-
-
-# Testing MLMLoader
-from pathlib import Path
-ROOT_PATH = Path(os.path.dirname(__file__)).parent
-path = ROOT_PATH / 'dataset'
-train_data = torch.utils.data.DataLoader(MLMLoader(path, 'train'), batch_size=64, shuffle=False, pin_memory=True)
