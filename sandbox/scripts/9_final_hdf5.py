@@ -1,5 +1,5 @@
 '''
-Create one HDF5 file and store whole dataset
+Create one HDF5 file and store whole dataset - Will be changes to combine all HDF5 files
 
 Stats
 3.21 minutes for 298 examples
@@ -10,7 +10,6 @@ Deepdish:
     - All images: 224MB for all modalities and images (including triples)
     - One image: 71MB
 '''
-
 import os
 import h5py
 import json
@@ -174,18 +173,3 @@ print('Done!')
 tok = dt.datetime.now()
 
 print(f'Total time: {tok-tik} seconds')
-
-# mlm_pilot = {
-#     'images': img_dict,
-#     'en_wikis': enwiki_dict,
-#     'fr_wikis': frwiki_dict,
-#     'de_wikis': dewiki_dict,
-#     'coords': coord_dict,
-#     'triples': triple_dict
-# }
-
-# import deepdish as dd
-# dd.io.save(os.path.join(HDF5_DIR, 'mlm_pilot.h5'), mlm_pilot)
-# test = dd.io.load(os.path.join(HDF5_DIR, 'mlm_pilot.h5'))
-# tok = dt.datetime.now()
-# print(f'{(tok-tik).seconds} seconds')
