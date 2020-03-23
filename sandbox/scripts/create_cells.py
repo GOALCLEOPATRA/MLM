@@ -254,7 +254,7 @@ def main():
     logging.info('Write output file ...')
     fname = write_output(args_img_min,args_img_max, img_container, h, num_images, args_output)
 
-    outputs = creatr_one_hot(img_container, fname)
+    outputs = create_one_hot(img_container, fname)
     write_output(outputs)
 
 
