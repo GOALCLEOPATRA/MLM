@@ -134,14 +134,14 @@ def write_output(args_img_min, args_img_max, img_container, h, num_images, out_p
     return fname
 
 
-def my_write_output(classes):
+def write_output(classes):
 
     with open("main_output", 'w') as outfile:
         json.dump(classes, outfile)
 
 
 
-def my_func(img_container, fname):
+def create_one_hot(img_container, fname):
     df = pd.read_csv('outputs/'+fname, usecols=['class_label', 'hex_id', 'imgs_per_cell','latitude_mean','longitude_mean'])
     cls_hexes = list(df.itertuples(index=False, name=None))
     n_clses = len(cls_hexes)
@@ -254,8 +254,8 @@ def main():
     logging.info('Write output file ...')
     fname = write_output(args_img_min,args_img_max, img_container, h, num_images, args_output)
 
-    outputs = my_func(img_container, fname)
-    my_write_output(outputs)
+    outputs = creatr_one_hot(img_container, fname)
+    write_output(outputs)
 
 
 
