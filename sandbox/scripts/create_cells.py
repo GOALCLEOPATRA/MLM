@@ -134,10 +134,6 @@ def write_output(args_img_min, args_img_max, img_container, h, num_images, out_p
     return fname
 
 
-def write_output(classes):
-
-    with open("main_output", 'w') as outfile:
-        json.dump(classes, outfile)
 
 
 
@@ -158,7 +154,7 @@ def create_one_hot(img_container, fname):
     main_output = []
     for img_class, ic in zip(img_classes, img_container):
         dic = {}
-        dic['image_id'] = ic[0]
+        dic['pageID_imageID'] = ic[0]
         dic['class'] = img_class
         one_hot = np.zeros([n_clses])
 
@@ -169,6 +165,8 @@ def create_one_hot(img_container, fname):
 
         dic['one_hot'] = list(one_hot)
         main_output.append(dic)
+    with open("main_output", 'w') as outfile:
+        json.dump(main_output, outfile)
     return main_output
 
 
@@ -180,14 +178,16 @@ def create_dataset(wiki_dataset):
     with open('dataset.csv', 'w', newline='') as f:
         cells_writer = csv.writer(f, delimiter=',')
         # write column names
-        cells_writer.writerow(['IMG_ID', 'LAT', 'LON'])
+        cells_writer.writerow(['Page_ID_Img_ID', 'LAT', 'LON'])
 
         for d, i in zip(data, range(num)):
-            coord = d['coord'][6:-1].split(' ')
-            lat = coord[0]
-            lng = coord[1]
-            img_id = d['item'].split('/')[-1]
-            cells_writer.writerow([img_id, lat, lng])
+            for img in d['images']:
+                coord = d['coord'][6:-1].split(' ')
+                lat = coord[0]
+                lng = coord[1]
+                page_id = d['item'].split('/')[-1]
+                img_id = img
+                cells_writer.writerow([page_id+'_'+img_id, lat, lng])
 
 
 def main():
@@ -196,7 +196,8 @@ def main():
     
     args_verbose = 'store_true'
     args_dataset = 'dataset.csv'
-    args_column_img_path='IMG_ID'
+    args_column_img_path='Img_ID'
+    args_page_id = 'Page_ID'
     args_column_lat = 'LAT'
     args_column_lng = 'LON'
     args_lvl_min = 2
@@ -204,7 +205,7 @@ def main():
     args_output = 'outputs'
     args_img_min = 0
     args_img_max = 1000
-    args_dataset_name = 'pilot_wikidata'
+    args_dataset_name = 'pilot_capitals'
 
     create_dataset(args_dataset_name)
 
@@ -216,7 +217,7 @@ def main():
     logging.basicConfig(format='%(asctime)s %(levelname)s: %(message)s', datefmt='%d-%m-%Y %H:%M:%S', level=level)
 
     # read dataset
-    df = pd.read_csv(args_dataset, usecols=[args_column_img_path, args_column_lat, args_column_lng])
+    df = pd.read_csv(args_dataset, usecols=[args_page_id+'_'+args_column_img_path, args_column_lat, args_column_lng])
     img_container = list(df.itertuples(index=False, name=None))
     num_images = len(img_container)
     logging.info('{} images available.'.format(num_images))
@@ -255,7 +256,7 @@ def main():
     fname = write_output(args_img_min,args_img_max, img_container, h, num_images, args_output)
 
     outputs = create_one_hot(img_container, fname)
-    write_output(outputs)
+
 
 
 
