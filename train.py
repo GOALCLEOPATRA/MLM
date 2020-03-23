@@ -126,8 +126,6 @@ def main():
                   'state_dict': model.state_dict(),
                   'best_val': best_val,
                   'optimizer': optimizer.state_dict(),
-                  'valtrack': valtrack,
-                  'freeVision': args.freeVision,
                   'curr_val': val_loss})
 
             print(f'** Validation: {best_val} (best)')
