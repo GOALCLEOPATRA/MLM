@@ -1,0 +1,59 @@
+{
+   "identifier": {
+      "@identifierType": "DOI"
+   },
+   "creators": [
+      {
+         "creatorName": [],
+         "affiliation": []
+      },
+      {
+         "creatorName": [],
+         "affiliation": []
+      }
+   ],
+   "title": [],
+   "abbreviation": [],
+   "publisher": [],
+   "publicationYear": [],
+   "version": [],
+   "subject": [
+      [],
+      []
+   ],
+   "rights": [],
+   "format": [],
+   "resourceType": {
+      "@resourceTypeGeneral": "Dataset"
+   },
+   "descriptions": {
+      "description": {
+         "@descriptionType": "Abstract"
+      }
+   },
+   "relatedIdentifiers": [
+      [],
+      []
+   ],
+   "relatedPublications": [
+      {
+         "@citationType": "BibTeX"
+      },
+      {
+         "@citationType": "BibTeX"
+      }
+   ],
+   "contributors": [
+      {
+         "@contributorType": "ContactPerson",
+         "contributorName": [],
+         "affiliation": []
+      },
+      {
+         "@contributorType": "ContactPerson",
+         "contributorName": [],
+         "affiliation": []
+      }
+   ],
+   "depositDate": []
+}

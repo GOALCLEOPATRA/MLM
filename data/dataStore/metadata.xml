@@ -1,0 +1,47 @@
+<resource xmlns="" xmlns:xsi="" xsi:schemaLocation="">
+	<identifier identifierType="DOI"></identifier>
+	<creators>
+		<creator>
+			<creatorName></creatorName>
+			<affiliation></affiliation>
+		</creator>
+		<creator>
+			<creatorName></creatorName>
+			<affiliation></affiliation>
+		</creator>
+	</creators>
+	<title></title>
+	<abbreviation></abbreviation>
+	<publisher></publisher>
+	<publicationYear></publicationYear>
+	<version></version>
+	<subject>
+		<keyword></keyword>
+		<keyword></keyword>
+	</subject>
+	<rights></rights>
+	<format></format>
+	<resourceType resourceTypeGeneral="Dataset"/>
+	<descriptions>
+		<description descriptionType="Abstract"></description>
+	</descriptions>
+	<relatedIdentifiers>
+		<relatedIdentifier></relatedIdentifier>
+		<relatedIdentifier></relatedIdentifier>
+	</relatedIdentifiers>
+	<relatedPublications>
+		<relatedPublication citationType="BibTeX"></relatedPublication>
+		<relatedPublication citationType="BibTeX"></relatedPublication>
+	</relatedPublications>
+	<contributors>
+		<contributor contributorType="ContactPerson">
+			<contributorName></contributorName>
+			<affiliation></affiliation>
+		</contributor>
+		<contributor contributorType="ContactPerson">
+			<contributorName></contributorName>
+			<affiliation></affiliation>
+		</contributor>
+	</contributors>
+	<depositDate></depositDate>
+</resource>

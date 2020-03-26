@@ -1,0 +1,38 @@
+identifier: 			identifierType: "DOI"
+				<text>
+
+creators:			creatorName (affiliation)
+				creatorName (affiliation)
+
+
+title:				<text>
+	
+abbreviation:			<text>
+	
+publisher:			<text>
+	
+publicationYear:		<text>
+	
+version:			<text>
+	
+subject:			<text>
+	
+rights:				<text>
+	
+format:				<text>
+	
+type: 				"Dataset"
+	
+descriptions:			descriptionType: "Abstract"
+				<text>
+
+relatedIdentifiers:		<text>
+				<text>
+
+relatedPublications:		<text>
+				<text>
+
+contributors:			<text>
+				<text>
+
+depositDate:			<text>
