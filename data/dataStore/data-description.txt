@@ -1,0 +1,17 @@
+#Include description of each of the columns and distribution of train test valid split
+ 
+#Summary Statistics
+
+1. Number of variables: 
+
+2. Number of rows: 
+
+3. Variable List: 
+<list variable label,variable name, description, format, unit and intervals weights as appropriate for each>
+
+4. Missing data codes: 
+<list code/symbol and definition>
+
+5. Specialized formats or other abbreviations used: 
+
+Full names and definitions (spell out abbreviated words) of column headings for tabular data
