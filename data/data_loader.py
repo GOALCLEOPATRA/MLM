@@ -7,7 +7,7 @@ import h5py
 import torch
 
 class MLMLoader(data.Dataset):
-    def __init__(self, data_path, partition, mismatch=0.8):
+    def __init__(self, data_path, partition, mismatch=0.2):
 
         if data_path == None:
             raise Exception('No data path specified.')
