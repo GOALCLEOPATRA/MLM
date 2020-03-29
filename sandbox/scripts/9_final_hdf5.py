@@ -1,175 +1,111 @@
 '''
-Create one HDF5 file and store whole dataset - Will be changes to combine all HDF5 files
-
-Stats
-3.21 minutes for 298 examples
-HDF5:
-    - All images: 1.6 GB for images, wiki texts (en, fr, de) and coords - triples are not included
-    - One image:
-Deepdish:
-    - All images: 224MB for all modalities and images (including triples)
-    - One image: 71MB
+Create one HDF5 file and store whole dataset
 '''
 import os
 import h5py
-import json
-import torch
-import flair
-import random
+import time
 import numpy as np
 from pathlib import Path
-import torch.nn as nn
-import torchvision.models as models
-import torchvision.transforms as transforms
-from torch.autograd import Variable
-import datetime as dt
-from glob import glob
-from PIL import Image
-from flair.embeddings import FlairEmbeddings, DocumentPoolEmbeddings
-from flair.data import Sentence
 from sklearn.model_selection import train_test_split
 
-DEVICE = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-# set device
-flair.device = DEVICE
+# define paths
+ROOT_PATH = Path(os.path.dirname(__file__)).parent.parent
+HDF5_DIR = ROOT_PATH.parent / 'mlm_dataset/hdf5'
 
-torch.cuda.device(1)
+# read data
+images = h5py.File(os.path.join(HDF5_DIR, 'images/images.h5'), 'r')
+images_cropped = h5py.File(os.path.join(HDF5_DIR, 'images/images_cropped.h5'), 'r')
+summaries_flair = h5py.File(os.path.join(HDF5_DIR, 'summaries/summaries_flair.h5'), 'r')
+summaries_bert = h5py.File(os.path.join(HDF5_DIR, 'summaries/summaries_bert.h5'), 'r')
+coordinates = h5py.File(os.path.join(HDF5_DIR, 'coordinates/coordinates.h5'), 'r')
+classes = h5py.File(os.path.join(HDF5_DIR, 'classes/classes_bert.h5'), 'r')
 
-tik = dt.datetime.now()
+ids = list(coordinates['ids'])
 
-# Define contstants
-HEIGHT = 256
-WIDTH = 256
-CHANNELS = 3
-EMBED_SIZE = 2048
-COORD_SIZE = 2
+# split to train, test and val
+# 80% training, 10% validation and 10% test
+train_ids, val_ids = train_test_split(ids, test_size=0.2, shuffle=True)
+val_ids, test_ids = train_test_split(val_ids, test_size=0.5, shuffle=False)
 
-# Define paths
-ROOT_PATH = Path(os.path.dirname(__file__)).parent.parent.parent
-HDF5_DIR = ROOT_PATH / 'dataset'
-SOURCE = ROOT_PATH / 'dataset_files/pilot/'
-data_path = os.path.join(SOURCE, 'capitals_final.json')
-wikidata_path = os.path.join(SOURCE, 'capitals_wikidata.json')
-images = glob(os.path.join(SOURCE, 'thumbnails/*')) # for now we take all images
+# MLM flair
+MLM_flair_train = h5py.File(os.path.join(ROOT_PATH, 'dataset/flair/train.h5'), 'w')
+MLM_flair_val = h5py.File(os.path.join(ROOT_PATH, 'dataset/flair/val.h5'), 'w')
+MLM_flair_test = h5py.File(os.path.join(ROOT_PATH, 'dataset/flair/test.h5'), 'w')
+# ---------
+# MLM flair cropped
+MLM_flair_cropped_train = h5py.File(os.path.join(ROOT_PATH, 'dataset/flair_cropped/train.h5'), 'w')
+MLM_flair_cropped_val = h5py.File(os.path.join(ROOT_PATH, 'dataset/flair_cropped/val.h5'), 'w')
+MLM_flair_cropped_test = h5py.File(os.path.join(ROOT_PATH, 'dataset/flair_cropped/test.h5'), 'w')
+# ---------
+# MLM BERT
+MLM_bert_train = h5py.File(os.path.join(ROOT_PATH, 'dataset/bert/train.h5'), 'w')
+MLM_bert_val = h5py.File(os.path.join(ROOT_PATH, 'dataset/bert/val.h5'), 'w')
+MLM_bert_test = h5py.File(os.path.join(ROOT_PATH, 'dataset/bert/test.h5'), 'w')
+# ---------
+# MLM BERT cropped
+MLM_bert_cropped_train = h5py.File(os.path.join(ROOT_PATH, 'dataset/bert_cropped/train.h5'), 'w')
+MLM_bert_cropped_val = h5py.File(os.path.join(ROOT_PATH, 'dataset/bert_cropped/val.h5'), 'w')
+MLM_bert_cropped_test = h5py.File(os.path.join(ROOT_PATH, 'dataset/bert_cropped/test.h5'), 'w')
+# ---------
 
-# Read data from json
-data = []
-with open(data_path) as json_file:
-    data = json.load(json_file)
+def save_hdf5(h5f, id, im, sum, coord, one_hot, cl):
+    h5f.create_dataset(name=f'{id}_images', data=im, compression="gzip", compression_opts=9)
+    h5f.create_dataset(name=f'{id}_summaries', data=sum, compression="gzip", compression_opts=9)
+    h5f.create_dataset(name=f'{id}_coordinates', data=coord, compression="gzip", compression_opts=9)
+    h5f.create_dataset(name=f'{id}_onehot', data=one_hot, compression="gzip", compression_opts=9)
+    h5f.create_dataset(name=f'{id}_classes', data=cl, compression="gzip", compression_opts=9)
 
-wikidata = []
-with open(wikidata_path) as json_file:
-    wikidata = json.load(json_file)
-
-
-# Import ResNet-152
-print('Loading ResNet-152...')
-resnet152 = models.resnet152(pretrained=True)
-modules = list(resnet152.children())[:-1]
-resnet152 = nn.Sequential(*modules)
-for p in resnet152.parameters():
-    p.requires_grad = False
-print('Done!')
-
-# Img transforms to fit ResNet
-scaler = transforms.Resize((224, 224))
-to_tensor = transforms.ToTensor()
-
-# Create image dictionary
-print('Processing with images...')
-img_dict = {}
-for img in images:
-    key = img.rsplit('/', 1)[-1].split('_')[0]
-    if key not in img_dict:
-        img_dict[key] = []
-
-    img = Image.open(img).convert('RGB')
-    img = Variable(to_tensor(scaler(img)).unsqueeze(0))
-    emb_var = resnet152(img) # embeddings from last layer
-    emb = emb_var.data
-    emb = emb.view(2048).detach().cpu().numpy()
-    img_dict[key].append(emb)
-
-print('Done!')
-
-
-# Initialize BERT embeddings using Flair framework
-# bert_embeddings = BertEmbeddings('bert-base-uncased')
-print('Loading text embeddings...')
-flair_embedding_forward = FlairEmbeddings('news-forward')
-# lair_embedding_backward = FlairEmbeddings('news-backward')
-document_embeddings = DocumentPoolEmbeddings([flair_embedding_forward])
-print('Done!')
-
-# # Create data dictionary
-print('Processing with text and coordinates...')
-enwiki_dict = {}
-frwiki_dict = {}
-dewiki_dict = {}
-coord_dict = {}
-for sample in data:
-    key = sample['item'].rsplit('/', 1)[-1]
-    # Get values
-    en = Sentence(sample['en_wiki']['text'])
-    fr = Sentence(sample['fr_wiki']['text'])
-    de = Sentence(sample['de_wiki']['text'])
-    coord = sample['coord'][sample['coord'].find("(")+1:sample['coord'].find(")")].split(' ')
-
-    # Process values
-    document_embeddings.embed(en)
-    document_embeddings.embed(fr)
-    document_embeddings.embed(de)
-    coord = np.array(coord, dtype=np.float32)
-
-    # Save values
-    enwiki_dict[key] = en.embedding.detach().cpu().numpy()
-    frwiki_dict[key] = fr.embedding.detach().cpu().numpy()
-    dewiki_dict[key] = de.embedding.detach().cpu().numpy()
-    coord_dict[key] = coord
-print('Done!')
-
-# Create triple dictionary
-# print('Processing with triples...')
-# We take only english for now - We do triples later
-# triple_dict = {}
-# for sample in wikidata:
-#     key = sample['item'].rsplit('/', 1)[-1]
-#     if key in enwiki_dict:
-#         triple_dict[key] = sample['wikidata']['en']
-# print('Done!')
-
-# assert len(img_dict) == len(enwiki_dict), 'Images and data does not have the same size'
-
-all_ids = list(img_dict.keys())
-train_ids, test_ids = train_test_split(all_ids, test_size=0.2, shuffle=True)
-test_ids, val_ids = train_test_split(test_ids, test_size=0.5)
-
-dict_ids = {
-    'train': train_ids,
-    'val': val_ids,
-    'test': test_ids
+all_hdf5 = {
+    'train': [MLM_flair_train, MLM_flair_cropped_train, MLM_bert_train, MLM_bert_cropped_train],
+    'val': [MLM_flair_val, MLM_flair_cropped_val, MLM_bert_val, MLM_bert_cropped_val],
+    'test': [MLM_flair_test, MLM_flair_cropped_test, MLM_bert_test, MLM_bert_cropped_test]
 }
 
-# write train data
-print('Writing data into HDF5 files...')
-for key_label in dict_ids.keys():
-    with h5py.File(os.path.join(HDF5_DIR, f'{key_label}_pilot.h5'), 'w') as h5f:
-        for i, key in enumerate(dict_ids[key_label]):
-            # create image matrix
-            image_matrix = np.stack(img_dict[key])
+all_ids = [('train', train_ids), ('val', val_ids), ('test', test_ids)]
 
-            # save values
-            h5f.create_dataset(name=f'{key.strip("Q")}_images', data=image_matrix, compression="gzip", compression_opts=9)
-            h5f.create_dataset(name=f'{key.strip("Q")}_enwiki', data=enwiki_dict[key], compression="gzip", compression_opts=9)
-            h5f.create_dataset(name=f'{key.strip("Q")}_frwiki', data=frwiki_dict[key], compression="gzip", compression_opts=9)
-            h5f.create_dataset(name=f'{key.strip("Q")}_dewiki', data=dewiki_dict[key], compression="gzip", compression_opts=9)
-            h5f.create_dataset(name=f'{key.strip("Q")}_coords', data=coord_dict[key], compression="gzip", compression_opts=9)
-            # h5f.create_dataset(name=f'{key.strip("Q")}_triples', data=triple_dict[key], compression="gzip", compression_opts=9)
+tic = time.perf_counter()
+for id_type in all_ids:
+    for i, id in enumerate(id_type[1]):
+        img = images[f'{id}_images'][()]
+        img_cropped = images_cropped[f'{id}_images'][()]
+        sum_flair_en = summaries_flair[f'{id}_en'][()]
+        sum_flair_de = summaries_flair[f'{id}_de'][()]
+        sum_flair_fr = summaries_flair[f'{id}_fr'][()]
+        sum_bert_en = summaries_bert[f'{id}_en'][()]
+        sum_bert_de = summaries_bert[f'{id}_de'][()]
+        sum_bert_fr = summaries_bert[f'{id}_fr'][()]
+        coord = coordinates[f'{id}_coordinates'][()]
+        coord_onehot = coordinates[f'{id}_onehot'][()]
+        cl = classes[f'{id}_classes'][()]
 
-        # save keys as int
-        h5f.create_dataset(name=f'ids', data=np.array([key.strip('Q') for key in dict_ids[key_label]], dtype=np.int), compression="gzip", compression_opts=9)
-print('Done!')
+        # save values for MLM_flair
+        save_hdf5(all_hdf5[id_type[0]][0], id, img, np.stack([sum_flair_en, sum_flair_de, sum_flair_fr], axis=0), coord, coord_onehot, np.squeeze(cl, axis=0))
+        # save values for MLM_flair_cropped
+        save_hdf5(all_hdf5[id_type[0]][1], id, img_cropped, np.stack([sum_flair_en, sum_flair_de, sum_flair_fr], axis=0), coord, coord_onehot, np.squeeze(cl, axis=0))
+        # save values for MLM_bert
+        save_hdf5(all_hdf5[id_type[0]][2], id, img, np.stack([sum_bert_en, sum_bert_de, sum_bert_fr], axis=0), coord, coord_onehot, np.squeeze(cl, axis=0))
+        # save values for MLM_bert_cropped
+        save_hdf5(all_hdf5[id_type[0]][3], id, img_cropped, np.stack([sum_bert_en, sum_bert_de, sum_bert_fr], axis=0), coord, coord_onehot, np.squeeze(cl, axis=0))
 
-tok = dt.datetime.now()
+        toc = time.perf_counter()
+        print(f'====> Finished id {id} -- {((i+1)/len(id_type[1]))*100:.2f}% -- {toc - tic:0.2f}s -- {id_type[0]}')
 
-print(f'Total time: {tok-tik} seconds')
+    # save keys
+    all_hdf5[id_type[0]][0].create_dataset(name=f'ids', data=np.array(id_type[1], dtype=np.int), compression="gzip", compression_opts=9)
+    all_hdf5[id_type[0]][1].create_dataset(name=f'ids', data=np.array(id_type[1], dtype=np.int), compression="gzip", compression_opts=9)
+    all_hdf5[id_type[0]][2].create_dataset(name=f'ids', data=np.array(id_type[1], dtype=np.int), compression="gzip", compression_opts=9)
+    all_hdf5[id_type[0]][3].create_dataset(name=f'ids', data=np.array(id_type[1], dtype=np.int), compression="gzip", compression_opts=9)
+
+    # close writing hdf5 files
+    all_hdf5[id_type[0]][0].close()
+    all_hdf5[id_type[0]][1].close()
+    all_hdf5[id_type[0]][2].close()
+    all_hdf5[id_type[0]][3].close()
+
+# close reading hdf5 files
+images.close()
+images_cropped.close()
+summaries_flair.close()
+summaries_bert.close()
+coordinates.close()
+classes.close()

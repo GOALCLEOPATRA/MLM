@@ -1,53 +1,144 @@
 '''
-Create one HDF5 file and store coordinates
+Create HDF5 file coordinates embeddings
 '''
 import os
-import h5py
+import sys
 import json
+import h5py
 import numpy as np
+import s2sphere as s2
+from time import time
 from pathlib import Path
-import datetime as dt
+from functools import partial
+from multiprocessing import Pool
+from collections import Counter
 
-tik = dt.datetime.now()
+def _init_parallel(img, level):
+    cell = s2.Cell.from_lat_lng(s2.LatLng.from_degrees(img[1], img[2]))
+    hexid = cell.id().parent(level).to_token()
+    return [*img, hexid, cell]
 
-# Define paths - fix path locally
+
+def init_cells(img_container_0, level):
+    start = time()
+    f = partial(_init_parallel, level=level)
+    img_container = []
+    with Pool(8) as p:
+        for x in p.imap_unordered(f, img_container_0, chunksize=1000):
+            img_container.append(x)
+    print(f'Time multiprocessing: {time() - start:.2f}s')
+    start = time()
+    h = dict(Counter(list(list(zip(*img_container))[3])))
+    print(f'Time creating h: {time() - start:.2f}s')
+
+    return img_container, h
+
+
+def delete_cells(img_container, h, t_min):
+    del_cells = {k for k, v in h.items() if v <= t_min}
+    h = {k: v for k, v in h.items() if v > t_min}
+    img_container_f = []
+    for img in img_container:
+        hexid = img[3]
+        if hexid not in del_cells:
+            img_container_f.append(img)
+    return img_container_f, h
+
+
+def gen_subcells(img_container_0, h_0, level, t_max):
+    img_container = []
+    h = {}
+    for img in img_container_0:
+        hexid_0 = img[3]
+        if h_0[hexid_0] > t_max:
+            hexid = img[4].id().parent(level).to_token()
+            img[3] = hexid
+            try:
+                h[hexid] = h[hexid] + 1
+            except:
+                h[hexid] = 1
+        else:
+            try:
+                h[hexid_0] = h[hexid_0] + 1
+            except:
+                h[hexid_0] = 1
+        img_container.append(img)
+    return img_container, h
+
+args_lvl_min = 2
+args_lvl_max = 10
+args_img_min = 0
+args_img_max = 1000
+
 ROOT_PATH = Path(os.path.dirname(__file__)).parent.parent.parent
-HDF5_DIR = ROOT_PATH / 'dataset'
-SOURCE = ROOT_PATH / 'dataset_files/pilot/'
-data_path = os.path.join(SOURCE, 'capitals_final.json')
 
-# Read data from json
-data = []
-with open(data_path) as json_file:
-    data = json.load(json_file)
+# load data
+img_container = []
+for i in range(1, 21):
+    data_path = f'{str(ROOT_PATH)}/mlm_dataset/MLM_dataset/MLM_{i}/MLM_{i}.json'
+    with open(data_path) as json_file:
+        for d in json.load(json_file):
+            img_container.append([d['id'], float(d['coordinates'][0]), float(d['coordinates'][1])])
 
-# # Create data dictionary
-print('Processing with text and coordinates...')
-coord_dict = {}
-for sample in data:
-    key = sample['item'].rsplit('/', 1)[-1]
-    # Get values
-    coord = sample['coord'][sample['coord'].find("(")+1:sample['coord'].find(")")].split(' ')
 
-    # Process values
-    coord = np.array(coord, dtype=np.float32)
+num_images = len(img_container)
+print(f'{num_images} entities available.')
+level = args_lvl_min
 
-    # Save values
-    coord_dict[key] = coord
+# initialize
+print(f'Initialize cells of level {args_lvl_min} ...')
+start = time()
+img_container, h = init_cells(img_container, level)
+print(f'Time: {time() - start:.2f}s - Number of classes: {len(h)}')
+
+print('Remove cells with |img| < t_min ...')
+start = time()
+img_container, h = delete_cells(img_container, h, args_img_min)
+print(f'Time: {time() - start:.2f}s - Number of classes: {len(h)}')
+
+print('Create subcells ...')
+while any(v > args_img_max for v in h.values()) and level < args_lvl_max:
+    level = level + 1
+    print(f'Level {level}')
+    start = time()
+    img_container, h = gen_subcells(img_container, h, level, args_img_max)
+    print(f'Time: {time() - start:.2f}s - Number of classes: {len(h)}')
+
+print('Remove cells with |img| < t_min ...')
+start = time()
+img_container, h = delete_cells(img_container, h, args_img_min)
+print(f'Time: {time() - start:.2f}s - Number of classes: {len(h)}')
+print(f'Number of entities: {len(img_container)}')
+
+
+# calculate mean GPS coordinate in each cell
+coords_sum = {}
+for img in img_container:
+    if img[3] not in coords_sum:
+        coords_sum[img[3]] = [0, 0]
+    coords_sum[img[3]][0] = coords_sum[img[3]][0] + img[1]
+    coords_sum[img[3]][1] = coords_sum[img[3]][1] + img[2]
+
+# write partitioning information
+cell_classes = {}
+for i, (k, v) in enumerate(h.items()):
+    cell_classes[k] = {
+        'class': i,
+        'count': v,
+        'coordinates': [coords_sum[k][0] / v, coords_sum[k][1] / v]
+    }
+
+# write results
+HDF5_DIR = ROOT_PATH / f'mlm_dataset/hdf5/coordinates/coordinates.h5'
+with h5py.File(HDF5_DIR, 'w') as h5f:
+    for ic in img_container:
+        one_hot = np.squeeze(np.eye(len(cell_classes.keys()))[np.array(cell_classes[ic[3]]['class']).reshape(-1)]).astype('float32')
+        coordinates = np.array(cell_classes[ic[3]]['coordinates'], dtype='float32')
+        # we save 2 values: one hot vector and coordinates
+        h5f.create_dataset(name=f'{ic[0]}_onehot', data=one_hot, compression="gzip", compression_opts=9)
+        h5f.create_dataset(name=f'{ic[0]}_coordinates', data=coordinates, compression="gzip", compression_opts=9)
+
+    # save keys as int
+    h5f.create_dataset(name=f'ids', data=np.array([d[0] for d in img_container], dtype=np.int), compression="gzip", compression_opts=9)
+
 print('Done!')
-
-# write train data
-print('Writing data into HDF5 files...')
-for key_label in coord_dict.keys():
-    with h5py.File(os.path.join(HDF5_DIR, f'{key_label}_pilot.h5'), 'w') as h5f:
-        for i, key in enumerate(coord_dict[key_label]):
-            # save values
-            h5f.create_dataset(name=f'{key.strip("Q")}_coords', data=coord_dict[key], compression="gzip", compression_opts=9)
-
-        # save keys as int
-        h5f.create_dataset(name=f'ids', data=np.array([key.strip('Q') for key in coord_dict[key_label]], dtype=np.int), compression="gzip", compression_opts=9)
-print('Done!')
-
-tok = dt.datetime.now()
-
-print(f'Total time: {tok-tik} seconds')
