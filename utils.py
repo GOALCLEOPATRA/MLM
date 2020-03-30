@@ -30,10 +30,9 @@ class AverageMeter(object):
         self.avg = self.sum / self.count
 
 # ranking method for evaluating results
-def rank(opts, img_embeds, text_embeds, ids):
-    type_embedding = opts.embtype
-    im_vecs = img_embeds
-    instr_vecs = text_embeds
+def rank(opts, input_embeds, coord_embeds, ids):
+    im_vecs = input_embeds
+    coord_vecs = coord_embeds
     names = ids
 
     # Sort based on names to always pick same samples for medr
@@ -49,14 +48,11 @@ def rank(opts, img_embeds, text_embeds, ids):
 
     for i in range(10):
         ids = random.sample(range(0,len(names)), N)
-        im_sub = im_vecs[ids,:]
-        instr_sub = instr_vecs[ids,:]
+        input_sub = im_vecs[ids,:]
+        coord_sub = coord_vecs[ids,:]
         ids_sub = names[ids]
 
-        if type_embedding == 'image':
-            sims = np.dot(im_sub, instr_sub.T) # for im2text
-        else:
-            sims = np.dot(instr_sub, im_sub.T) # for text2im
+        sims = np.dot(input_sub, coord_sub.T) # for input2coord
 
         med_rank = []
         recall = {1:0.0, 5:0.0, 10:0.0}
@@ -100,16 +96,3 @@ def rank(opts, img_embeds, text_embeds, ids):
 def save_checkpoint(state, filename='checkpoint.pth.tar'):
     filename = f'{ROOT_PATH}/{args.snapshots}/model_e{state["epoch"]}_v-{state["best_val"]:.4f}.pth.tar'
     torch.save(state, filename)
-
-def adjust_learning_rate(optimizer, epoch, opts):
-    """Switching between modalities"""
-    # parameters corresponding to the rest of the network
-    optimizer.param_groups[0]['lr'] = opts.lr * opts.freeText
-    # parameters corresponding to visionMLP
-    optimizer.param_groups[1]['lr'] = opts.lr * opts.freeVision
-
-    print(f'Initial base params lr: {optimizer.param_groups[0]["lr"]}')
-    print(f'Initial vision lr: {optimizer.param_groups[1]["lr"]}')
-
-    # after first modality change we set patience to 3
-    opts.patience = 3

@@ -9,96 +9,82 @@ args = parser.parse_args()
 def norm(input, p=2, dim=1, eps=1e-12):
     return input / input.norm(p, dim, keepdim=True).clamp(min=eps).expand_as(input)
 
-# embed wiki text - need to be changed
-class Img2Vec(nn.Module):
+# embed images
+class LearnImages(nn.Module):
     def __init__(self):
-        super(Img2Vec, self).__init__()
-
-    def forward(self, x):
-        return x
-
-# embed wiki text - need to be changed
-class Wiki2Vec(nn.Module):
-    def __init__(self):
-        super(Wiki2Vec, self).__init__()
-        self.lstm = nn.LSTM(input_size=args.wikiDim, hidden_size=args.embDim, bidirectional=False, batch_first=True)
-
-    def forward(self, x):
-        out, hidden = self.lstm(x.unsqueeze(1))
-        return out.squeeze(1)
-
-# embed coordinates
-class Coord2Vec(nn.Module):
-    def __init__(self):
-        super(Coord2Vec, self).__init__()
-        self.linear = nn.Linear(in_features=2, out_features=args.embDim)
-
-    def forward(self, x):
-        return self.linear(x)
-
-# embed coordinates
-class Triple2Vec(nn.Module):
-    def __init__(self):
-        super(Triple2Vec, self).__init__()
-        self.linear = nn.Linear(in_features=2048, out_features=args.embDim)
-
-    def forward(self, x):
-        return self.linear(x)
-
-# MLM model
-class MLMRetrieval(nn.Module):
-    def __init__(self):
-        super(MLMRetrieval, self).__init__()
-        self.img2vec        = Img2Vec()
-        self.wiki2vec       = Wiki2Vec()
-        self.coord2vec      = Coord2Vec()
-        self.triple2vec     = Triple2Vec()
-
+        super(LearnImages, self).__init__()
         self.visual_embedding = nn.Sequential(
             nn.Linear(args.imgDim, args.embDim),
             nn.Tanh(),
         )
 
-        self.wiki_embedding = nn.Sequential(
-            nn.Linear(args.wikiDim, args.embDim),
+    def forward(self, x):
+        x = x.view(x.size(0), -1)
+        x = self.visual_embedding(x)
+        x = norm(x)
+        return x
+
+# embed summaries
+class LearnSummaries(nn.Module):
+    def __init__(self):
+        super(LearnSummaries, self).__init__()
+        self.lstm = nn.LSTM(input_size=args.sumDim, hidden_size=args.embDim, bidirectional=False, batch_first=True)
+        self.sum_embedding = nn.Sequential(
+            nn.Linear(args.embDim, args.embDim),
             nn.Tanh(),
         )
 
+    def forward(self, x):
+        x, hidden = self.lstm(x.unsqueeze(1))
+        x = self.sum_embedding(x)
+        x = norm(x)
+        return x.squeeze(1)
+
+# embed coordinates
+class LearnCoordinates(nn.Module):
+    def __init__(self):
+        super(LearnCoordinates, self).__init__()
         self.coord_embedding = nn.Sequential(
             nn.Linear(args.coordDim, args.embDim),
             nn.Tanh(),
         )
 
-        self.triple_embedding = nn.Sequential(
-            nn.Linear(args.tripleDim, args.embDim),
+    def forward(self, x):
+        x = self.coord_embedding(x)
+        x = norm(x)
+        return x
+
+# embed classes
+class LearnClasses(nn.Module):
+    def __init__(self):
+        super(LearnClasses, self).__init__()
+        self.class_embedding = nn.Sequential(
+            nn.Linear(args.classDim, args.embDim),
             nn.Tanh(),
         )
 
-    def forward(self, img, en_wiki, fr_wiki, de_wiki, coord, triple):
-        # wiki embedding
-        enwiki_emb = self.wiki2vec(en_wiki)
-        enwiki_emb = norm(enwiki_emb)
+    def forward(self, x):
+        x = self.class_embedding(x)
+        x = norm(x)
+        return x
+
+# MLM model
+class MLMRetrieval(nn.Module):
+    def __init__(self):
+        super(MLMRetrieval, self).__init__()
+        self.learn_img      = LearnImages()
+        self.learn_sum      = LearnSummaries()
+        self.learn_coord    = LearnCoordinates()
+        self.learn_cls      = LearnClasses()
+
+    def forward(self, input, coord):
+        # input embedding
+        input_emb = self.learn_img(input) if args.input == 'image' else self.learn_sum(input)
 
         # coord embedding
-        coord_emb = self.coord2vec(coord)
-        coord_emb = norm(coord_emb)
-
-        # triple embedding
-        triple_emb = self.triple2vec(triple)
-        triple_emb = norm(triple_emb)
-
-        # combined embedding
-        comb_embed = torch.cat([enwiki_emb, coord_emb], 1) # joining on the last dim
-        # recipe_emb = self.recipe_embedding(recipe_emb)
-        # recipe_emb = norm(recipe_emb)
-
-        # visual embedding
-        visual_emb = self.img2vec(img)
-        visual_emb = visual_emb.view(visual_emb.size(0), -1)
-        visual_emb = self.visual_embedding(visual_emb)
-        visual_emb = norm(visual_emb)
+        coord_emb = self.learn_coord(coord)
 
         # final output
-        output = [visual_emb, enwiki_emb]
+        output = [input_emb, coord_emb]
 
         return output

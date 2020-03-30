@@ -7,7 +7,7 @@ import h5py
 import torch
 
 class MLMLoader(data.Dataset):
-    def __init__(self, data_path, partition, mismatch=0.2):
+    def __init__(self, data_path, partition, mismatch=0.5):
 
         if data_path == None:
             raise Exception('No data path specified.')
@@ -17,60 +17,50 @@ class MLMLoader(data.Dataset):
         else:
             self.partition = partition
 
-        self.h5f = h5py.File(os.path.join(data_path, f'{partition}_pilot.h5'), 'r')
+        self.h5f = h5py.File(os.path.join(data_path, f'{partition}.h5'), 'r')
 
         self.ids = self.h5f['ids']
         self.mismatch = mismatch
 
     def __getitem__(self, index):
         instanceId = self.ids[index]
-        # we force 80 percent of them to be a mismatch
+        # we force 50 percent of them to be a mismatch
         match = np.random.uniform() > self.mismatch if self.partition == 'train' else True
 
         target = match and 1 or -1
 
         if target == 1:
             # load positive example
-            coord = self.h5f[f'{instanceId}_coords'][()]
-            all_img = self.h5f[f'{instanceId}_images']
-            if self.partition == 'train':
-                # select randomly one of the images
-                img = all_img[np.random.choice(range(all_img.shape[0]))]
-            else:
-                # For val and test we always take the first image
-                img = all_img[0]
+            coord = self.h5f[f'{instanceId}_onehot'][()]
         else:
-            # For negative examples we sample random coordinates and image
-            # The wiki text will always stay correct
-            # load negative examples - select random index different than current
+            # load megative example
             all_idx = range(len(self.ids))
-            rndindex = np.random.choice(all_idx)
-            while rndindex == index:
-                rndindex = np.random.choice(all_idx)  # pick a random index
+            rndCoordIndex = np.random.choice(all_idx)
+            coord_t = self.h5f[f'{instanceId}_onehot'][()]
+            coord = self.h5f[f'{instanceId}_onehot'][()]
+            # we have to be sure that we get wrong coordinates and not just random id
+            while rndCoordIndex == index and not np.array_equal(coord_t, coord):
+                rndCoordIndex = np.random.choice(all_idx)  # pick a random index for coordinates
+                rndId = self.ids[rndCoordIndex]
+                coord = self.h5f[f'{rndId}_onehot'][()]
 
-            # load negative examples
-            rndId = self.ids[rndindex]
-            coord = self.h5f[f'{rndId}_coords'][()]
-            all_img = self.h5f[f'{rndId}_images']
+        # load images
+        all_img = self.h5f[f'{instanceId}_images']
+        if self.partition == 'train':
+            # select randomly one of the images
+            img = all_img[np.random.choice(range(all_img.shape[0]))]
+        else:
+            # For val and test we always take the first image
+            img = all_img[0]
 
-            if self.partition == 'train':
-                img = all_img[np.random.choice(range(all_img.shape[0]))]
-            else:
-                img = all_img[0]
-
-        # load wiki texts
-        en_wiki = self.h5f[f'{instanceId}_enwiki'][()]
-        fr_wiki = self.h5f[f'{instanceId}_frwiki'][()]
-        de_wiki = self.h5f[f'{instanceId}_dewiki'][()]
+        # load summaries (random language)
+        multi_wiki = self.h5f[f'{instanceId}_summaries'][()][np.random.choice(range(3))]
 
         # output
         output = {
             'image': img,
+            'multi_wiki': multi_wiki,
             'coord': coord,
-            'en_wiki': en_wiki,
-            'fr_wiki': fr_wiki,
-            'de_wiki': de_wiki,
-            'triple': np.zeros((2048), dtype='float32'), # later we replace
             'target': target
         }
 
