@@ -26,6 +26,7 @@ if torch.cuda.is_available():
     torch.cuda.manual_seed_all(args.seed)
 
 # define device
+torch.cuda.set_device(2)
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
 def main():
@@ -86,7 +87,7 @@ def main():
         train(train_loader, model, criterion, optimizer, epoch)
 
         # evaluate on validation set
-        if (epoch+1) % args.valfreq == 0 and epoch != 0:
+        if (epoch+1) % args.valfreq == 0:
             val_loss = validate(val_loader, model, criterion, epoch+1)
             # save the best model
             if val_loss < best_val:
@@ -96,7 +97,7 @@ def main():
                   'state_dict': model.state_dict(),
                   'best_val': best_val,
                   'optimizer': optimizer.state_dict(),
-                  'curr_val': val_loss})
+                  'curr_val': val_loss}, input_name=args.input)
 
             print(f'** Validation: {best_val} (best)')
 

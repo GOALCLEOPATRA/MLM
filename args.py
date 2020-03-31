@@ -38,7 +38,6 @@ def get_parser():
     parser.add_argument('--model_path', default='experiments/snapshots/model_e16_v-14.5000.pth.tar', type=str)
 
     # MedR / Recall@1 / Recall@5 / Recall@10
-    # parser.add_argument('--embtype', default='image', type=str) # [image|coord] or [text|coord] query type
-    parser.add_argument('--medr', default=1000, type=int)
+    parser.add_argument('--medr', default=10000, type=int)
 
     return parser

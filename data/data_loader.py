@@ -35,17 +35,16 @@ class MLMLoader(data.Dataset):
         else:
             # load megative example
             all_idx = range(len(self.ids))
-            rndCoordIndex = np.random.choice(all_idx)
             coord_t = self.h5f[f'{instanceId}_onehot'][()]
             coord = self.h5f[f'{instanceId}_onehot'][()]
             # we have to be sure that we get wrong coordinates and not just random id
-            while rndCoordIndex == index and not np.array_equal(coord_t, coord):
+            while np.array_equal(coord_t, coord):
                 rndCoordIndex = np.random.choice(all_idx)  # pick a random index for coordinates
                 rndId = self.ids[rndCoordIndex]
                 coord = self.h5f[f'{rndId}_onehot'][()]
 
         # load images
-        all_img = self.h5f[f'{instanceId}_images']
+        all_img = self.h5f[f'{instanceId}_images'][()]
         if self.partition == 'train':
             # select randomly one of the images
             img = all_img[np.random.choice(range(all_img.shape[0]))]
@@ -65,7 +64,7 @@ class MLMLoader(data.Dataset):
         }
 
         if self.partition != 'train':
-            output['id'] = instanceId
+            output['id'] = np.argmax(coord)
 
         return output
 

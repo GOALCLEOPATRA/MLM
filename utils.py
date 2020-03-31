@@ -4,6 +4,7 @@ import torch
 import numpy as np
 from pathlib import Path
 from args import get_parser
+from  more_itertools import unique_everseen
 
 ROOT_PATH = Path(os.path.dirname(__file__))
 
@@ -65,34 +66,33 @@ def rank(opts, input_embeds, coord_embeds, ids):
             # sort indices in descending order
             sorting = np.argsort(sim)[::-1].tolist()
 
-            # find where the index of the pair sample ended up in the sorting
-            pos = sorting.index(ii)
+            # we want unique index since we use coordinates ids
+            sorting = ids_sub[sorting].tolist()
+            sorting = list(unique_everseen(sorting))
 
-            if (pos+1) == 1:
-                recall[1]+=1
-            if (pos+1) <=5:
-                recall[5]+=1
-            if (pos+1)<=10:
-                recall[10]+=1
+            # find where the index of the pair sample ended up in the sorting
+            pos = sorting.index(name)
+
+            if (pos+1) == 1: recall[1] += 1
+            if (pos+1) <= 5: recall[5] += 1
+            if (pos+1) <= 10: recall[10] += 1
 
             # store the position
             med_rank.append(pos+1)
 
+        unique_coord_num = len(list(unique_everseen(ids_sub)))
         for i in recall.keys():
-            recall[i]=recall[i]/N
-
-        med = np.median(med_rank)
-        # print "median", med
+            recall[i]=recall[i]/unique_coord_num
 
         for i in recall.keys():
             glob_recall[i]+=recall[i]
-        glob_rank.append(med)
+        glob_rank.append(np.median(med_rank))
 
     for i in glob_recall.keys():
-        glob_recall[i] = format(glob_recall[i]/10, '.4f')
+        glob_recall[i] = format(glob_recall[i]/10, '.2f')
 
     return np.average(glob_rank), glob_recall
 
-def save_checkpoint(state, filename='checkpoint.pth.tar'):
-    filename = f'{ROOT_PATH}/{args.snapshots}/model_e{state["epoch"]}_v-{state["best_val"]:.4f}.pth.tar'
+def save_checkpoint(state, input_name):
+    filename = f'{ROOT_PATH}/{args.snapshots}/{input_name}_model_e{state["epoch"]}_v-{state["best_val"]:.2f}.pth.tar'
     torch.save(state, filename)
