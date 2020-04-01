@@ -69,12 +69,9 @@ def test(test_loader, model, criterion):
     end = time.time()
     for i, test_input in enumerate(test_loader):
         # inputs
-        input_img = torch.stack([test_input['image'][j].to(device) for j in range(len(test_input['image']))])
-        input_enwiki = torch.stack([test_input['en_wiki'][j].to(device) for j in range(len(test_input['en_wiki']))])
-        input_frwiki = torch.stack([test_input['fr_wiki'][j].to(device) for j in range(len(test_input['fr_wiki']))])
-        input_dewiki = torch.stack([test_input['de_wiki'][j].to(device) for j in range(len(test_input['de_wiki']))])
+        input = torch.stack([test_input['image'][j].to(device) for j in range(len(test_input['image']))]) if args.input == 'image' else \
+                torch.stack([test_input['multi_wiki'][j].to(device) for j in range(len(test_input['multi_wiki']))])
         input_coord = torch.stack([test_input['coord'][j].to(device) for j in range(len(test_input['coord']))])
-        input_triples = torch.stack([test_input['triple'][j].to(device) for j in range(len(test_input['triple']))])
 
         # target
         target_var = torch.stack([test_input['target'][j].to(device) for j in range(len(test_input['target']))])
@@ -83,12 +80,12 @@ def test(test_loader, model, criterion):
         ids = torch.stack([test_input['id'][j].to(device) for j in range(len(test_input['id']))])
 
         # compute output
-        output = model(input_img, input_enwiki, input_frwiki, input_dewiki, input_coord, input_triples)
+        output = model(input, input_coord)
 
         # compute loss
         loss = criterion(output[0], output[1], target_var)
         # measure performance and record loss
-        cos_losses.update(loss.data, input_img.size(0))
+        cos_losses.update(loss.data, input.size(0))
 
         # measure elapsed time
         batch_time.update(time.time() - end)
