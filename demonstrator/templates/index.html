@@ -1,0 +1,268 @@
+<!DOCTYPE html>
+<html lang="zxx" class="no-js">
+
+<head>
+	<!-- Mobile Specific Meta -->
+	<meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+	<!-- Favicon-->
+	<link rel="shortcut icon" href="img/fav.png">
+	<!-- Author Meta -->
+	<meta name="author" content="codepixer">
+	<!-- Meta Description -->
+	<meta name="description" content="">
+	<!-- Meta Keyword -->
+	<meta name="keywords" content="">
+	<!-- meta character set -->
+	<meta charset="UTF-8">
+	<!-- Site Title -->
+	<title>WiKi-MLM</title>
+
+	<link href="https://fonts.googleapis.com/css?family=Playfair+Display:400,700,900|Roboto:300,400,500,700" rel="stylesheet">
+	<!--CSS============================================= -->
+	<link rel="stylesheet" href="../static/assets/css/linearicons.css">
+	<link rel="stylesheet" href="../static/assets/css/font-awesome.min.css">
+	<link rel="stylesheet" href="../static/assets/css/bootstrap.css">
+	<link rel="stylesheet" href="../static/assets/css/magnific-popup.css">
+	<link rel="stylesheet" href="../static/assets/css/nice-select.css">
+	<link rel="stylesheet" href="../static/assets/css/animate.min.css">
+	<link rel="stylesheet" href="https://code.jquery.com/ui/1.12.1/themes/base/jquery-ui.css">
+	<link rel="stylesheet" href="../static/assets/css/owl.carousel.css">
+	<link rel="stylesheet" href="../static/assets/css/main.css">
+
+	<style>
+		img {
+		  border: 1px solid #ddd;
+		  border-radius: 4px;
+		  padding: 5px;
+		  width: 150px;
+		}
+		
+		img:hover {
+		  box-shadow: 0 0 2px 4px rgba(256, 5, 5, 9);
+		}
+	</style>
+
+	<script>
+		function func(idd){
+			document.getElementById('inImg').value = document.getElementById(idd).getAttribute('data');
+			document.getElementById('upload-form-image').submit();
+		}
+	</script>
+
+	<script>
+		function funcAdd(e){
+			var txtArea = document.getElementById('inTxtArea');
+
+			if(e == 'Bisceglie'){
+				txtArea.innerHTML = 'Bisceglie (Italian: [biʃˈʃeʎʎe]; Biscegliese: Vescégghie) is a city and municipality on the Adriatic Sea of 55,251 inhabitants in the province of Barletta-Andria-Trani, in the Apulia region (Italian: Puglia), in southern Italy. The city was awarded Blue Flag Beach certification in 2001 for high environmental and quality standards. Scallette and Salsello Beaches were also certified in 2003, 2005 and 2006.It is the municipality with the fourth highest population in the province and fourteenth highest in the region.It is an important agricultural hub, with manufacturers mainly in the textile industry.';
+				document.getElementById('inTxt').value = e;
+			} else if(e == 'Escauduvres'){
+				txtArea.innerHTML = 'Escaudœuvres ist eine französische Gemeinde mit 3257 Einwohnern (Stand 1. Januar 2017) im Département Nord in der Region Hauts-de-France. Sie gehört zum Arrondissement Cambrai und zum Kanton Cambrai (bis 2015: Kanton Cambrai-Est). Die Einwohner werden Scaldobrigiens genannt.\nEscaudœuvres liegt 3,5 Kilometer nordöstlich von Cambrai, 30 Kilometer von Valenciennes und 28 Kilometer von Douai entfernt am Ufer der Schelde. Nachbargemeinden sind: Cambrai, Cagnoncles, Cauroir, Eswars, Naves, Ramillies, Thun-l’Évêque und Thun-Saint-Martin.';
+				document.getElementById('inTxt').value = e;
+			} else if(e == 'Golden Bridge'){
+				txtArea.innerHTML = 'Le pont d\'or (en vietnamien : Cầu Vàng) est un pont piétonnier long de 150 mètres, construit dans les collines Bà Nà (en), située à 1400 m daltitude près de Da Nang au Viêt Nam.\nCe pont a été conçu uniquement pour servir dattraction touristique et comme point de vue sur les collines boisées du centre du pays. Le pont forme une boucle, et semble être soutenu par deux immenses mains en béton.';
+				document.getElementById('inTxt').value = e;
+			}  else if(e == 'Pingshan District'){
+				txtArea.innerText = 'Le district de Pingshan (平山区 ; pinyin : Píngshān Qū) est une subdivision administrative de la province du Liaoning en Chine. Il est placé sous la juridiction de la ville-préfecture de Benxi dont elle couvre le centre.';
+				document.getElementById('inTxt').value = e;
+			} else if(e == 'Sirmione'){
+				txtArea.innerHTML = 'Sirmione (Brescian: Sirmiù; Venetian: Sirmion) is a comune in the province of Brescia, in Lombardy (northern Italy).  It is bounded by the comunes of Desenzano del Garda (Lombardy) and Peschiera del Garda in the province of Verona and the region of Veneto.  It has a historical centre which is located on the Sirmio peninsula that divides the lower part of Lake Garda.';
+				document.getElementById('inTxt').value = e;
+			} else if(e == 'Guldental'){
+				txtArea.innerHTML = 'Guldental is an Ortsgemeinde – a municipality belonging to a Verbandsgemeinde, a kind of collective municipality – in the Bad Kreuznach district in Rhineland-Palatinate, Germany. It belongs to the Verbandsgemeinde Langenlonsheim-Stromberg, whose seat is in Langenlonsheim. With a population of some 2,900 inhabitants, Guldental is the biggest rural winegrowing community on the Nahe.';
+				document.getElementById('inTxt').value = e;
+			} else if(e == 'Lake Ontario'){
+				txtArea.innerHTML = 'Der Ontariosee (englisch Lake Ontario; französisch Lac Ontario) ist der flächenmäßig kleinste der fünf Großen Seen Nordamerikas, die miteinander durch Flussläufe verbunden sind.\nNach Tiefe und Volumen ist er jedoch nach dem Eriesee der zweitkleinste.';
+				document.getElementById('inTxt').value = e;
+			} else if(e == 'Sasebo'){
+				txtArea.innerHTML = 'Sasebo (佐世保市, Sasebo-shi) is a core city located in Nagasaki Prefecture, Japan. As of 1 June 2019, the city has an estimated population of 247,739 and a population density of 581 persons per km². The total area is 426.06 km2 (165 sq mi).\nThe city includes a part of Saikai National Park. Located in the southern part of the city is the Dutch-styled theme park Huis Ten Bosch.';
+				document.getElementById('inTxt').value = e;
+			} else if(e == 'Tvaro'){
+				txtArea.innerHTML = 'Tvarožná (en allemand : Bosenitz) est une commune tchèque du district de Brno-Campagne, dans la région de Moravie-du-Sud. Sa population sélevait à 1 279 habitants en 2017.';
+				document.getElementById('inTxt').value = e;
+			} else if(e == 'Oriental'){
+				txtArea.innerHTML = 'Oriental (Arabic: الشرق, Ash-Sharq; Berber: ⵜⴰⴳⵎⵓⴹⴰⵏⵜ,Tagmuḍant ) is one of the twelve regions of Morocco, located in the eastern part of the country. It covers an area of 90,127 km² and has a population of 2,314,346 (2014 census).\nThe capital and the largest city is Oujda, and the second largest city is Nador. The region includes 7 provinces and one prefecture. Mohamed Mhidia became wali (governor) of the region in 2015.A majority of the population of Oriental speak Moroccan Darija Arabic (86.2%) as a first or second language. A large minority speak the Rif-Berber language (38.4%) as a first language. Small numbers speak Eastern Middle Atlas Tamazight and Figuig Tamazight, principally in the south of Oriental.';
+				document.getElementById('inTxt').value = e;
+			} 
+		}
+	</script>
+
+</head>
+
+<body>
+
+	<!-- Start Header Area -->
+	<header id="header">
+		<div class="row align-items-right">
+			<div id="logo">
+				<a href="index.html"><img src="../static/image/logo.png" alt="" title="" /></a>
+			</div>
+			<div class="col-md-3">
+				<div class="card">
+					<div class="card-header" data-toggle="collapse" href="#collapseIntro" aria-expanded="false" aria-controls="collapseIntro">
+					<a class="h6" data-toggle="collapse" href="#collapseIntro" aria-expanded="false" aria-controls="collapseIntro">Instructions</a>
+					<div class="collapse-wrapper" style="float:right;">
+						<a data-toggle="collapse" href="#collapseIntro" aria-expanded="false" aria-controls="collapseIntro" style="color: #AF1414;">
+							<i class="fa fa-angle-down fa-lg"></i>
+						</a>
+					</div>
+				</div>
+				<div class="card-body collapse padding-small" id="collapseIntro">
+					<p>	Text:<br/>
+						Select an Entity from the dropdown list to load it's related text . 
+						After you have clicked on "Estimate Location" the results are calculated and presented.<br/><br/>
+						Image:<br/>
+						Select an Image to Estimate Location and get the results. 
+					</p>
+				</div>
+			</div>
+		</div>
+	</header>
+	<!-- Start Header Area -->
+
+
+	<!-- start Banner Area -->
+	<section class="home-banner-area relative">
+		<div class="container-fluid">
+			<div class="row  d-flex align-items-center justify-content-center">
+				<div class="col-md-5">
+					<div class="row">
+						<div class="col-md-12 top_row_buffer h-100">
+							<div id="image-card" class="card h-100">
+								<div class="card-header">
+									<p class="card-title" style="padding-bottom: 5px;">Input:
+									<ul id="image_list_tabs" class="nav nav-tabs card-header-tabs">
+										<li class="nav-item">
+											<a class="nav-link active" id="text_tab_title" data-toggle="tab" href="#text_tab">Text</a>
+										</li>
+										<li class="nav-item">
+											<a class="nav-link" id="image_tab_title" data-toggle="tab" href="#image_tab">Image</a>
+										</li>
+									</ul>
+								</div>
+								<div id="image-card-body" class="card-body h-100">
+									<div class="tab-content">
+										<div id="text_tab" class="tab-pane active bg-white" style="padding: 0px 0px;">
+											<form id="uploadformtext" name="uploadformtext" action='/text-coordinate' method="POST">
+												<div class="row">
+													<div class="col-md-12 form-group">
+														<select id="optn" onchange="funcAdd(this.value)">
+															<option value="select">Select an Entity</option>
+															<option value="Bisceglie">Bisceglie</option>
+															<option value="Escauduvres">Escaudœuvres</option>
+															<option value="Golden Bridge">Golden Bridge</option>
+															<option value="Oriental">Oriental</option>
+															<option value="Tvaro">Tvarožná</option>
+															<option value="Sasebo">Sasebo</option>
+															<option value="Lake Ontario">Lake Ontario</option>
+															<option value="Guldental">Guldental</option>
+															<option value="Sirmione">Sirmione</option>
+															<option value="Pingshan District">Pingshan District</option>
+														</select>
+														<br/>
+														<textarea readonly rows="9" class="common-textarea form-control" name="inTxtArea" id="inTxtArea"></textarea>
+														<input type="hidden" name="inTxt" id="inTxt" value=""/>
+													</div>
+												</div>
+												<input type="submit" name="submit" id="submit" class="primary-btn mt-20 text-white" style="float: left;" value="Estimate Location"></input>
+											</form>
+										</div>
+										<div id="image_tab" class="tab-pane" style="padding: 0px 0px;">
+											<form id="upload-form-image" name="upload-form-image" action='/image-coordinate' method="POST">
+												<div class="container_centered">
+													<input type="hidden" name="inImg" id="inImg" value=""/>  
+													               
+														<a href="#" id="im1" data="Q1789630_0.jpg" onclick="func(this.id)">
+															<img src="/static/images/Q1789630_0.jpg" alt=".." style="width:130px">
+														</a>
+														<a href="#" id="im2" data="Q680361_2.png" onclick="func(this.id)">
+															<img src="/static/images/Q680361_2.png" alt=".." style="width:130px">
+														</a>
+														<a href="#" id="im3" data="Q630749_1.png" onclick="func(this.id)">
+															<img src="/static/images/Q630749_1.png" alt=".." style="width:130px">
+														</a>
+
+														<a href="#" id="im4" data="Q1789630_0.jpg" onclick="func(this.id)">
+															<img src="/static/images/Q1789630_0.jpg" alt=".." style="width:130px">
+														</a>
+														<a href="#" id="im5" data="Q680361_2.png" onclick="func(this.id)">
+															<img src="/static/images/Q680361_2.png" alt=".." style="width:130px">
+														</a>
+														<a href="#" id="im6" data="Q630749_1.png" onclick="func(this.id)">
+															<img src="/static/images/Q630749_1.png" alt=".." style="width:130px">
+														</a>
+
+														     
+														<a href="#" id="im7" data="Q680361_1.jpg" onclick="func(this.id)">
+															<img src="/static/images/Q680361_1.jpg" alt=".." style="width:130px">
+														</a>
+														<a href="#" id="im8" data="Q55954790_1.jpg" onclick="func(this.id)">
+															<img src="/static/images/Q55954790_1.jpg" alt=".." style="width:130px">
+														</a>
+														<a href="#" id="im9" data="Q1789630_2.png" onclick="func(this.id)">
+															<img src="/static/images/Q1789630_2.png" alt=".." style="width:130px">
+														</a>
+														<a href="#" id="im10" data="Q112019_0.jpg" onclick="func(this.id)">
+															<img src="/static/images/Q112019_0.jpg" alt=".." style="width:130px">
+														</a>
+														
+														<a href="#" id="im10" data="Q23178_0.jpg" onclick="func(this.id)">
+															<img src="/static/images/Q23178_0.jpg" alt=".." style="width:130px">
+														</a>
+														
+												</div>
+											</form>
+										</div>
+									</div>
+								</div>
+							</div>
+						</div>
+					</div>
+				</div>
+				<div class="col-md-7 header-right">
+					<iframe src="https://maps.google.com?saddr={{saddr}}&daddr={{daddr}}&hl=en&z=3&amp;output=embed" width="100%" height="700" frameborder="0" style="border:0" allowfullscreen>
+					</iframe>
+				</div>
+			</div>
+		</div>
+	</section>
+	<!-- End Banner Area -->
+
+
+	<!-- start footer Area -->
+	<footer class="footer-area">
+		<div class="container" style="padding-top: 20px; margin-left:770px; padding-bottom: 10px;">
+			<h6>Results:</h6>
+			<p><b>Prediction: {{ pred }}</b><br/><b>Actual: {{ saddr }}</b><br/><b>Rank: {{ rank }}</b></p>
+		</div>
+		<div class="container-full-width" style="padding-bottom: 50px;">
+			<center>
+				<p><b>GitHub Page: </b>For details on the deep learning approach please check our gitHub page: https://github.com/GOALCLEOPATRA/MLM</p>
+				<p><b>Funding: </b>This project has received funding from the European Union’s Horizon 2020 research and innovation programme (Marie Skłodowska-Curie grant agreement no. 				812997)</p>
+			</center>
+		</div>
+	</footer>
+	<!-- End footer Area -->
+
+	<script src="../static/assets/js/vendor/jquery-2.2.4.min.js"></script>
+	<script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.12.9/umd/popper.min.js" integrity="sha384-ApNbgh9B+Y1QKtv3Rn7W3mgPxhU9K/ScQsAP7hUibX39j7fakFPskvXusvfa0b4Q"
+	 crossorigin="anonymous"></script>
+	<script src="../static/assets/js/vendor/bootstrap.min.js"></script>
+	<script type="text/javascript" src="https://maps.googleapis.com/maps/api/js?key=AIzaSyBhOdIF3Y9382fqJYt5I_sswSrEw5eihAA"></script>
+	<script src="https://code.jquery.com/ui/1.12.1/jquery-ui.js"></script>
+	<script src="../static/assets/js/easing.min.js"></script>
+	<script src="../static/assets/js/hoverIntent.js"></script>
+	<script src="../static/assets/js/superfish.min.js"></script>
+	<script src="../static/assets/js/jquery.ajaxchimp.min.js"></script>
+	<script src="../static/assets/js/jquery.magnific-popup.min.js"></script>
+	<script src="../static/assets/js/owl.carousel.min.js"></script>
+	<script src="../static/assets/js/jquery.sticky.js"></script>
+	<script src="../static/assets/js/jquery.nice-select.min.js"></script>
+	<script src="../static/assets/js/waypoints.min.js"></script>
+	<script src="../static/assets/js/jquery.counterup.min.js"></script>
+	<script src="../static/assets/js/parallax.min.js"></script>
+	<script src="../static/assets/js/mail-script.js"></script>
+	<script src="../static/assets/js/main.js"></script>
+</body>
+
+</html>
