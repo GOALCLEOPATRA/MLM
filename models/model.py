@@ -19,8 +19,10 @@ class LearnImages(nn.Module):
     def __init__(self):
         super(LearnImages, self).__init__()
         self.embedding = nn.Sequential(
-            nn.Conv1d(in_channels=args.imgDim, out_channels=args.embDim, kernel_size=1),
-            nn.Flatten(),
+            # nn.Conv1d(in_channels=args.imgDim, out_channels=args.embDim, kernel_size=1),
+            # nn.Flatten(),
+            nn.LSTM(input_size=args.imgDim, hidden_size=args.embDim, bidirectional=False, batch_first=True),
+            LstmFlatten(),
             nn.ReLU(),
             nn.Linear(args.embDim, args.embDim),
             nn.Tanh(),
@@ -28,7 +30,7 @@ class LearnImages(nn.Module):
         )
 
     def forward(self, x):
-        return self.embedding(x.unsqueeze(2))
+        return self.embedding(x.unsqueeze(1))
 
 # embed summaries
 class LearnSummaries(nn.Module):

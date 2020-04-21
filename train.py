@@ -163,11 +163,11 @@ def validate(val_loader, model, criterion, epoch):
 
         if i==0:
             data0 = output[0].data.cpu().numpy()
-            data1 = output[-1].data.cpu().numpy()
+            data1 = output[1].data.cpu().numpy()
             data2 = ids.data.cpu().numpy()
         else:
             data0 = np.concatenate((data0, output[0].data.cpu().numpy()), axis=0)
-            data1 = np.concatenate((data1, output[-1].data.cpu().numpy()), axis=0)
+            data1 = np.concatenate((data1, output[1].data.cpu().numpy()), axis=0)
             data2 = np.concatenate((data2, ids.data.cpu().numpy()), axis=0)
 
     medR, recall = rank(args, data0, data1, data2)
