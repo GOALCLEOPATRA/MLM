@@ -8,9 +8,9 @@ def get_parser():
     parser.add_argument('--no-cuda', action='store_true')
 
     # data
-    parser.add_argument('--data_path', default='dataset/bert/')
+    parser.add_argument('--data_path', default='dataset/MLM_v1_sample/')
     parser.add_argument('--workers', default=0, type=int)
-    parser.add_argument('--input', default='image', type=str) # [image|coord] or [text|coord] query type
+    # parser.add_argument('--input', default='image', type=str) # [image|coord] or [text|coord] query type
 
     # model
     parser.add_argument('--batch_size', default=32, type=int)
@@ -18,10 +18,11 @@ def get_parser():
 
     # MLM model
     parser.add_argument('--embDim', default=1024, type=int)
-    parser.add_argument('--imgDim', default=2048, type=int)
-    parser.add_argument('--coordDim', default=436, type=int)
+    parser.add_argument('--imgDim', default=4096, type=int)
+    parser.add_argument('--coordDim', default=116, type=int)
     parser.add_argument('--sumDim', default=3072, type=int)
     parser.add_argument('--classDim', default=3072, type=int)
+    parser.add_argument('--dropout', default=0.1, type=float)
     parser.add_argument('--multi_loss', default=True,type=bool)
 
     # training

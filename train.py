@@ -7,7 +7,7 @@ import torch.nn as nn
 import numpy as np
 from pathlib import Path
 from args import get_parser
-from models.model import MLMRetrieval
+from models.model import MLMCoordPrediction
 from data.data_loader import MLMLoader
 from utils import AverageMeter, rank, save_checkpoint
 
@@ -26,19 +26,18 @@ if torch.cuda.is_available():
     torch.cuda.manual_seed_all(args.seed)
 
 # define device
-torch.cuda.set_device(2)
+torch.cuda.set_device(3)
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
 def main():
     # load model
-    model = MLMRetrieval()
+    model = MLMCoordPrediction()
     model.to(device)
 
     # define loss function (criterion) and optimizer
-    # cosine similarity between embeddings -> input1, input2, target
-    criterion = nn.CosineEmbeddingLoss(margin=0.1).to(device)
+    criterion = nn.BCEWithLogitsLoss()
 
-    # optimizer - one group parameters for now
+    # optimizer
     optimizer = torch.optim.Adam(model.parameters(), lr=args.lr)
 
     if args.resume:
@@ -88,7 +87,8 @@ def main():
 
         # evaluate on validation set
         if (epoch+1) % args.valfreq == 0:
-            val_loss = validate(val_loader, model, criterion, epoch+1)
+            img_loss, txt_loss = validate(val_loader, model, criterion, epoch+1)
+            val_loss = img_loss + txt_loss
             # save the best model
             if val_loss < best_val:
               best_val = min(val_loss, best_val)
@@ -97,14 +97,15 @@ def main():
                   'state_dict': model.state_dict(),
                   'best_val': best_val,
                   'optimizer': optimizer.state_dict(),
-                  'curr_val': val_loss}, input_name=args.input)
+                  'curr_val': val_loss})
 
-            print(f'** Validation: {best_val} (best)')
+            print(f'** Validation: Image Loss: {img_loss}, Text Loss: {txt_loss} -- Total: {val_loss}, Best: {best_val}')
 
 def train(train_loader, model, criterion, optimizer, epoch):
     batch_time = AverageMeter()
     data_time = AverageMeter()
-    cos_losses = AverageMeter()
+    img_losses = AverageMeter()
+    txt_losses = AverageMeter()
 
     # switch to train mode
     model.train()
@@ -116,24 +117,27 @@ def train(train_loader, model, criterion, optimizer, epoch):
         data_time.update(time.time() - end)
 
         # inputs
-        input = torch.stack([train_input['image'][j].to(device) for j in range(len(train_input['image']))]) if args.input == 'image' else \
-                torch.stack([train_input['multi_wiki'][j].to(device) for j in range(len(train_input['multi_wiki']))])
-        input_coord = torch.stack([train_input['coord'][j].to(device) for j in range(len(train_input['coord']))])
+        image = torch.stack([train_input['image'][j].to(device) for j in range(len(train_input['image']))])
+        text = torch.stack([train_input['multi_wiki'][j].to(device) for j in range(len(train_input['multi_wiki']))])
 
         # target
-        target_var = torch.stack([train_input['target'][j].to(device) for j in range(len(train_input['target']))])
+        coord_target = torch.stack([train_input['coord'][j].to(device) for j in range(len(train_input['coord']))])
 
         # compute output
-        output = model(input, input_coord)
+        img_coord, txt_coord = model(image, text)
 
         # compute loss
-        loss = criterion(output[0], output[1], target_var)
+        img_loss = criterion(img_coord, coord_target)
+        txt_loss = criterion(txt_coord, coord_target)
+
         # measure performance and record loss
-        cos_losses.update(loss.data, input.size(0))
+        img_losses.update(img_loss.data, image.size(0))
+        txt_losses.update(txt_loss.data, text.size(0))
 
         # compute gradient and do Adam step
         optimizer.zero_grad()
-        loss.backward()
+        img_loss.backward()
+        txt_loss.backward()
         optimizer.step()
 
         # measure elapsed time
@@ -141,9 +145,11 @@ def train(train_loader, model, criterion, optimizer, epoch):
         end = time.time()
 
         print('-----------------------------------------------------------------')
-        print(f'Epoch: {epoch+1} -- Loss: {cos_losses.val:.4f} ({cos_losses.avg:.4f}) -- Batch done: {((i+1)/len(train_loader))*100:.2f}% -- Time: {batch_time.sum:0.2f}s')
+        print(f'Epoch: {epoch+1} - Image Loss: {img_losses.val:.4f} ({img_losses.avg:.4f}) - Text Loss: {txt_losses.val:.4f} ({txt_losses.avg:.4f}) - Batch done: {((i+1)/len(train_loader))*100:.2f}% - Time: {batch_time.sum:0.2f}s')
 
 def validate(val_loader, model, criterion, epoch):
+    img_losses = AverageMeter()
+    txt_losses = AverageMeter()
     # switch to evaluate mode
     model.eval()
 
@@ -151,35 +157,24 @@ def validate(val_loader, model, criterion, epoch):
 
     for i, val_input in enumerate(val_loader):
         # inputs
-        input = torch.stack([val_input['image'][j].to(device) for j in range(len(val_input['image']))]) if args.input == 'image' else \
-                torch.stack([val_input['multi_wiki'][j].to(device) for j in range(len(val_input['multi_wiki']))])
-        input_coord = torch.stack([val_input['coord'][j].to(device) for j in range(len(val_input['coord']))])
+        image = torch.stack([val_input['image'][j].to(device) for j in range(len(val_input['image']))])
+        text = torch.stack([val_input['multi_wiki'][j].to(device) for j in range(len(val_input['multi_wiki']))])
 
-        # ids
-        ids = torch.stack([val_input['id'][j].to(device) for j in range(len(val_input['id']))])
+        # target
+        coord_target = torch.stack([val_input['coord'][j].to(device) for j in range(len(val_input['coord']))])
 
         # compute output
-        output = model(input, input_coord)
+        img_coord, txt_coord = model(image, text)
 
-        if i==0:
-            data0 = output[0].data.cpu().numpy()
-            data1 = output[1].data.cpu().numpy()
-            data2 = ids.data.cpu().numpy()
-        else:
-            data0 = np.concatenate((data0, output[0].data.cpu().numpy()), axis=0)
-            data1 = np.concatenate((data1, output[1].data.cpu().numpy()), axis=0)
-            data2 = np.concatenate((data2, ids.data.cpu().numpy()), axis=0)
+        # compute loss
+        img_loss = criterion(img_coord, coord_target)
+        txt_loss = criterion(txt_coord, coord_target)
 
-    medR, recall = rank(args, data0, data1, data2)
+        # measure performance and record loss
+        img_losses.update(img_loss.data, image.size(0))
+        txt_losses.update(txt_loss.data, text.size(0))
 
-    print('-----------------------------------------------------------------')
-    print(f'* Val medR {medR:.4f} ----- Recall {recall}')
-    # write validation results on txt file
-    f = open(f'experiments/results/{args.input}2coord.txt', 'a')
-    f.write(f'Epoch {epoch}: * Val medR {medR:.4f} ----- Recall {recall}\n')
-    f.close()
-
-    return medR
+    return img_loss, txt_losses
 
 if __name__ == '__main__':
     main()

@@ -25,9 +25,9 @@ class MLMLoader(data.Dataset):
     def __getitem__(self, index):
         instanceId = self.ids[index]
         # we force 50 percent of them to be a mismatch
-        match = np.random.uniform() > self.mismatch if self.partition == 'train' else True
+        # match = np.random.uniform() > self.mismatch if self.partition == 'train' else True
 
-        target = match and 1 or -1
+        target = 1 # match and 1 or -1
 
         if target == 1:
             # load positive example
@@ -44,27 +44,28 @@ class MLMLoader(data.Dataset):
                 coord = self.h5f[f'{rndId}_onehot'][()]
 
         # load images
-        all_img = self.h5f[f'{instanceId}_images'][()]
-        if self.partition == 'train':
-            # select randomly one of the images
-            img = all_img[np.random.choice(range(all_img.shape[0]))]
-        else:
-            # For val and test we always take the first image
-            img = all_img[0]
+        # all_img = self.h5f[f'{instanceId}_images'][()]
+        img = self.h5f[f'{instanceId}_images'][()]
+        # if self.partition == 'train':
+        #     # select randomly one of the images
+        #     img = all_img[np.random.choice(range(all_img.shape[0]))]
+        # else:
+        #     # For val and test we always take the first image
+        #     img = all_img[0]
 
         # load summaries (random language)
-        multi_wiki = self.h5f[f'{instanceId}_summaries'][()][np.random.choice(range(3))]
+        multi_wiki = self.h5f[f'{instanceId}_summaries'][()]
+        multi_wiki = multi_wiki[np.random.choice(range(multi_wiki.shape[0]))]
 
         # output
         output = {
             'image': img,
             'multi_wiki': multi_wiki,
-            'coord': coord,
-            'target': target
+            'coord': coord
         }
 
-        if self.partition != 'train':
-            output['id'] = np.argmax(coord)
+        # if self.partition != 'train':
+        #     output['id'] = np.argmax(coord)
 
         return output
 

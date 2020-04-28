@@ -93,6 +93,6 @@ def rank(opts, input_embeds, coord_embeds, ids):
 
     return np.average(glob_rank), glob_recall
 
-def save_checkpoint(state, input_name):
-    filename = f'{ROOT_PATH}/{args.snapshots}/LSTM_{input_name}_model_e{state["epoch"]}_v-{state["best_val"]:.2f}.pth.tar'
+def save_checkpoint(state):
+    filename = f'{ROOT_PATH}/{args.snapshots}/Coord_Prediction_model_e{state["epoch"]}_v-{state["best_val"]:.2f}.pth.tar'
     torch.save(state, filename)
