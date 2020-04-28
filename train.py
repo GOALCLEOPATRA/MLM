@@ -174,7 +174,7 @@ def validate(val_loader, model, criterion, epoch):
         img_losses.update(img_loss.data, image.size(0))
         txt_losses.update(txt_loss.data, text.size(0))
 
-    return img_loss.avg, txt_losses.avg
+    return txt_losses.avg, txt_losses.avg
 
 if __name__ == '__main__':
     main()
