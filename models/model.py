@@ -40,7 +40,7 @@ class LearnImages(nn.Module):
             nn.Dropout(dropout),
             nn.Linear(args.embDim, args.embDim),
             Norm(),
-            nn.LogSoftmax(dim=1)
+            # nn.LogSoftmax(dim=1)
         )
 
     def forward(self, x):
@@ -57,7 +57,7 @@ class LearnSummaries(nn.Module):
             nn.Dropout(dropout),
             nn.Linear(args.embDim, args.embDim),
             Norm(),
-            nn.LogSoftmax(dim=1)
+            # nn.LogSoftmax(dim=1)
         )
 
     def forward(self, x):
