@@ -36,7 +36,7 @@ def get_parser():
 
     # test
     parser.add_argument('--path_results', default='experiments/results', type=str)
-    parser.add_argument('--model_path', default='experiments/snapshots/Coord_Prediction_model_e24_v-0.09.pth.tar', type=str)
+    parser.add_argument('--model_path', default='experiments/snapshots/Coord_Prediction_model_e6_v-0.05.pth.tar', type=str)
 
     # MedR / Recall@1 / Recall@5 / Recall@10
     parser.add_argument('--medr', default=10000, type=int)

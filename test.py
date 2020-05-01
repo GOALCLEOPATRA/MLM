@@ -99,12 +99,20 @@ def test(test_loader, model, criterion):
         txt_losses.update(txt_loss.data, text.size(0))
 
         # predict
-        pred_img.append([[o.argmax(), t.argmax()] for o, t in zip(img_coord, coord_target)])
-        pred_txt.append([[o.argmax(), t.argmax()] for o, t in zip(txt_coord, coord_target)])
+        pred_img.append([[t.argmax(), torch.topk(o, k=1)[1], torch.topk(o, k=5)[1], torch.topk(o, k=10)[1]] for o, t in zip(img_coord, coord_target)])
+        pred_txt.append([[t.argmax(), torch.topk(o, k=1)[1], torch.topk(o, k=5)[1], torch.topk(o, k=10)[1]] for o, t in zip(txt_coord, coord_target)])
+
     pred_img = [p for pred in pred_img for p in pred]
     pred_txt = [p for pred in pred_txt for p in pred]
-    print(f'Image Loss: {img_losses.avg} - Prediciton: {sum([1 if p[0] == p[1] else 0 for p in pred_img])/len(pred_img):.2f}')
-    print(f'Text Loss: {txt_losses.avg} - Prediciton: {sum([1 if p[0] == p[1] else 0 for p in pred_txt])/len(pred_txt):.2f}')
+
+    print(f'Image Loss: {img_losses.avg}')
+    print(f'==>Pred@1: {sum([1 if p[0] in p[1] else 0 for p in pred_img])/len(pred_img):.2f}')
+    print(f'==>Pred@5: {sum([1 if p[0] in p[2] else 0 for p in pred_img])/len(pred_img):.2f}')
+    print(f'==>Pred@10: {sum([1 if p[0] in p[3] else 0 for p in pred_img])/len(pred_img):.2f}')
+    print(f'Text Loss: {txt_losses.avg}')
+    print(f'==>Pred@1: {sum([1 if p[0] in p[1] else 0 for p in pred_txt])/len(pred_txt):.2f}')
+    print(f'==>Pred@5: {sum([1 if p[0] in p[2] else 0 for p in pred_txt])/len(pred_txt):.2f}')
+    print(f'==>Pred@10: {sum([1 if p[0] in p[3] else 0 for p in pred_txt])/len(pred_txt):.2f}')
 
 
 if __name__ == '__main__':

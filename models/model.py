@@ -14,11 +14,10 @@ class LstmFlatten(nn.Module):
     def forward(self, x):
         return x[0].squeeze(1)
 
-# simple ffn
-class FFN(nn.Module):
+class CoordNet(nn.Module):
     def __init__(self, tags=args.coordDim, dropout=args.dropout):
-        super(FFN, self).__init__()
-        self.ffn = nn.Sequential(
+        super(CoordNet, self).__init__()
+        self.coord_net = nn.Sequential(
             nn.LSTM(input_size=args.embDim, hidden_size=args.embDim, bidirectional=False, batch_first=True),
             LstmFlatten(),
             nn.Dropout(dropout),
@@ -27,7 +26,7 @@ class FFN(nn.Module):
         )
 
     def forward(self, x):
-        return self.ffn(x.unsqueeze(1))
+        return self.coord_net(x.unsqueeze(1))
 
 # embed images
 class LearnImages(nn.Module):
@@ -69,8 +68,8 @@ class MLMCoordPrediction(nn.Module):
         super(MLMCoordPrediction, self).__init__()
         self.learn_img      = LearnImages()
         self.learn_sum      = LearnSummaries()
-        self.image_coord    = FFN()
-        self.text_coord     = FFN()
+        self.image_coord    = CoordNet()
+        self.text_coord     = CoordNet()
 
     def forward(self, image, text):
         # input embedding

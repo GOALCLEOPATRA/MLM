@@ -26,7 +26,7 @@ if torch.cuda.is_available():
     torch.cuda.manual_seed_all(args.seed)
 
 # define device
-torch.cuda.set_device(3)
+torch.cuda.set_device(2)
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
 def main():
@@ -144,7 +144,6 @@ def train(train_loader, model, criterion, optimizer, epoch):
         batch_time.update(time.time() - end)
         end = time.time()
 
-        print('-----------------------------------------------------------------')
         print(f'Epoch: {epoch+1} - Image Loss: {img_losses.val:.4f} ({img_losses.avg:.4f}) - Text Loss: {txt_losses.val:.4f} ({txt_losses.avg:.4f}) - Batch done: {((i+1)/len(train_loader))*100:.2f}% - Time: {batch_time.sum:0.2f}s')
 
 def validate(val_loader, model, criterion, epoch):
