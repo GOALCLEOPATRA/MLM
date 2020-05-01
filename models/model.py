@@ -14,70 +14,64 @@ class LstmFlatten(nn.Module):
     def forward(self, x):
         return x[0].squeeze(1)
 
-class CoordNet(nn.Module):
-    def __init__(self, tags=args.coordDim, dropout=args.dropout):
-        super(CoordNet, self).__init__()
-        self.coord_net = nn.Sequential(
-            nn.LSTM(input_size=args.embDim, hidden_size=args.embDim, bidirectional=False, batch_first=True),
-            LstmFlatten(),
-            nn.Dropout(dropout),
-            nn.Linear(args.embDim, tags),
-            nn.LogSoftmax(dim=1)
-        )
-
-    def forward(self, x):
-        return self.coord_net(x.unsqueeze(1))
-
 # embed images
 class LearnImages(nn.Module):
-    def __init__(self, dropout=args.dropout):
+    def __init__(self):
         super(LearnImages, self).__init__()
         self.embedding = nn.Sequential(
-            nn.LSTM(input_size=args.imgDim, hidden_size=args.embDim, bidirectional=False, batch_first=True),
-            LstmFlatten(),
+            nn.Conv1d(in_channels=args.imgDim, out_channels=args.embDim, kernel_size=1),
+            nn.Flatten(),
             nn.ReLU(),
-            nn.Dropout(dropout),
             nn.Linear(args.embDim, args.embDim),
-            Norm(),
-            # nn.LogSoftmax(dim=1)
+            nn.Tanh(),
+            Norm()
         )
 
     def forward(self, x):
-        return self.embedding(x.unsqueeze(1))
+        return self.embedding(x.unsqueeze(2))
 
 # embed summaries
 class LearnSummaries(nn.Module):
-    def __init__(self, dropout=args.dropout):
+    def __init__(self):
         super(LearnSummaries, self).__init__()
         self.embedding = nn.Sequential(
             nn.LSTM(input_size=args.sumDim, hidden_size=args.embDim, bidirectional=False, batch_first=True),
             LstmFlatten(),
             nn.ReLU(),
-            nn.Dropout(dropout),
             nn.Linear(args.embDim, args.embDim),
-            Norm(),
-            # nn.LogSoftmax(dim=1)
+            nn.Tanh(),
+            Norm()
         )
 
     def forward(self, x):
         return self.embedding(x.unsqueeze(1))
 
-# MLM model
-class MLMCoordPrediction(nn.Module):
+# embed coordinates
+class LearnCoordinates(nn.Module):
     def __init__(self):
-        super(MLMCoordPrediction, self).__init__()
+        super(LearnCoordinates, self).__init__()
+        self.embedding = nn.Sequential(
+            nn.Linear(args.coordDim, args.embDim),
+            nn.Tanh(),
+            Norm()
+        )
+
+    def forward(self, x):
+        return self.embedding(x)
+
+# MLM model
+class MLMRetrieval(nn.Module):
+    def __init__(self):
+        super(MLMRetrieval, self).__init__()
         self.learn_img      = LearnImages()
         self.learn_sum      = LearnSummaries()
-        self.image_coord    = CoordNet()
-        self.text_coord     = CoordNet()
+        self.learn_coord    = LearnCoordinates()
 
-    def forward(self, image, text):
+    def forward(self, input, coord):
         # input embedding
-        img_emb = self.learn_img(image)
-        text_emb = self.learn_sum(text)
+        input_emb = self.learn_img(input) if args.input == 'image' else self.learn_sum(input)
 
-        # coord pred
-        img_coord = self.image_coord(img_emb)
-        txt_coord = self.text_coord(text_emb)
+        # coord embedding
+        coord_emb = self.learn_coord(coord)
 
-        return [img_coord, txt_coord]
+        return [input_emb, coord_emb]
