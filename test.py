@@ -49,7 +49,8 @@ def main():
     # prepare test loader
     test_loader = torch.utils.data.DataLoader(
         MLMLoader(data_path=f'{ROOT_PATH}/{args.data_path}', partition='test'),
-        batch_size=args.batch_size,
+        # batch_size=args.batch_size,
+        batch_size=1000,
         shuffle=False,
         num_workers=args.workers,
         pin_memory=True)
@@ -68,11 +69,9 @@ def kff(test_loader, model, criterion):
     model.eval()
 
     end = time.time()
-    count = 0
+
     for i, test_input in enumerate(test_loader):
-        count =count+1
-        print(count)
-        # inputs
+                # inputs
 
         input_img = torch.stack([test_input['image'][j].to(device) for j in range(len(test_input['image']))])
         input_summary = torch.stack([test_input['multi_wiki'][j].to(device) for j in range(len(test_input['multi_wiki']))])
