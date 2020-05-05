@@ -7,8 +7,8 @@ import torch.nn as nn
 import numpy as np
 from pathlib import Path
 from args import get_parser
-from models.model2 import MLMRetrieval
-from data.data_loader import MLMLoader
+from models.model import MLMRetrieval
+from data.data_loader_cluster_coords import MLMLoader
 from utils import AverageMeter, rank, save_checkpoint, adjust_learning_rate
 
 ROOT_PATH = Path(os.path.dirname(__file__))
@@ -87,7 +87,7 @@ def main():
     # prepared validation loader
     val_loader = torch.utils.data.DataLoader(
         MLMLoader(data_path=f'{ROOT_PATH}/{args.data_path}', partition='val'), # for now test, later we change to val
-        batch_size=args.batch_size,
+        batch_size=1000,
         shuffle=False,
         num_workers=args.workers,
         pin_memory=True)
