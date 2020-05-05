@@ -13,6 +13,6 @@ Dependencies are listed in the requirements.txt file.
 Instructions for running the code:
 [to be added]
 
-# Download files for location and scene embeddings
+### Download files for location and scene embeddings
 
 https://tib.eu/cloud/s/SWNckCMgdxSMXR7
