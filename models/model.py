@@ -1,4 +1,3 @@
-import torch
 import torch.nn as nn
 from args import get_parser
 
@@ -35,7 +34,7 @@ class LearnSummaries(nn.Module):
     def __init__(self):
         super(LearnSummaries, self).__init__()
         self.embedding = nn.Sequential(
-            nn.LSTM(input_size=args.sumDim, hidden_size=args.embDim, bidirectional=False, batch_first=True),
+            nn.LSTM(input_size=args.wikiDim, hidden_size=args.embDim, bidirectional=False, batch_first=True),
             LstmFlatten(),
             nn.ReLU(),
             nn.Linear(args.embDim, args.embDim),
@@ -46,18 +45,6 @@ class LearnSummaries(nn.Module):
     def forward(self, x):
         return self.embedding(x.unsqueeze(1))
 
-# embed coordinates
-class LearnCoordinates(nn.Module):
-    def __init__(self):
-        super(LearnCoordinates, self).__init__()
-        self.embedding = nn.Sequential(
-            nn.Linear(args.coordDim, args.embDim),
-            nn.Tanh(),
-            Norm()
-        )
-
-    def forward(self, x):
-        return self.embedding(x)
 
 # MLM model
 class MLMRetrieval(nn.Module):
@@ -65,13 +52,12 @@ class MLMRetrieval(nn.Module):
         super(MLMRetrieval, self).__init__()
         self.learn_img      = LearnImages()
         self.learn_sum      = LearnSummaries()
-        self.learn_coord    = LearnCoordinates()
 
-    def forward(self, input, coord):
+    def forward(self, input, sum):
         # input embedding
-        input_emb = self.learn_img(input) if args.input == 'image' else self.learn_sum(input)
+        input_emb = self.learn_img(input)
 
         # coord embedding
-        coord_emb = self.learn_coord(coord)
+        sum_emb = self.learn_sum(sum)
 
-        return [input_emb, coord_emb]
+        return [input_emb, sum_emb]
