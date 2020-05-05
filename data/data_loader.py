@@ -38,11 +38,20 @@ class MLMLoader(data.Dataset):
 
         target = match and 1 or -1
 
-        if target == 1:
-            # load positive example
+        if target == 1:  # load Pos example
+
             coord = self.h5f[f'{instanceId}_onehot'][()]
+            all_img = self.h5f[f'{instanceId}_images'][()]
+            if self.partition == 'train':
+                img = all_img[np.random.choice(range(all_img.shape[0]))]
+            else:
+                img = all_img[0]
+
+            summaries = self.h5f[f'{instanceId}_summaries'][()]
+            multi_wiki = summaries[np.random.choice(range(np.shape(summaries)[0]))]
+
         else:
-            # load megative example
+            # load Neg
             all_idx = range(len(self.ids))
             coord_t = self.h5f[f'{instanceId}_onehot'][()]
             coord = self.h5f[f'{instanceId}_onehot'][()]
@@ -52,30 +61,32 @@ class MLMLoader(data.Dataset):
                 rndId = self.ids[rndCoordIndex]
                 coord = self.h5f[f'{rndId}_onehot'][()]
 
-        # load images
-        all_img = self.h5f[f'{instanceId}_images'][()]
+            ids_of_this_cell = []
+            ids_of_this_cell.append(instanceId)
+            for ii in self.ids:
+                if self.h5f[f'{ii}_onehot'] == self.h5f[f'{instanceId}_onehot']:
+                    ids_of_this_cell.append(ii)
 
-        # print(np.shape(all_img))
+            all_idx = range(len(ids_of_this_cell))
+           # print(len(all_idx))
 
-        if self.partition == 'train':
-            # select randomly one of the images
-            img = all_img[np.random.choice(range(all_img.shape[0]))]
-        else:
-            # For val and test we always take the first image
-            img = all_img[0]
 
-        # load summaries (random language)
-        summaries = self.h5f[f'{instanceId}_summaries'][()]
 
-        rng = np.shape(summaries)[0]
-        # print(rng)
-        multi_wiki = summaries[np.random.choice(range(rng))]
+            all_img = self.h5f[f'{rndId}_images'][()]
+            if self.partition == 'train':
+                img = all_img[np.random.choice(range(all_img.shape[0]))]
+            else:
+                img = all_img[0]
+            summaries = self.h5f[f'{rndId}_summaries'][()]
+            multi_wiki = summaries[np.random.choice(range(np.shape(summaries)[0]))]
+
+
 
         # output
         output = {
             'image': img,
             'multi_wiki': multi_wiki,
-            'coord': coord,
+            # 'coord': coord,
             'target': target
         }
 
