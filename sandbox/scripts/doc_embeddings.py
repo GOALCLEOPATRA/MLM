@@ -4,7 +4,7 @@ from flair.data import Sentence
 from flair.embeddings import FlairEmbeddings, BertEmbeddings, DocumentPoolEmbeddings
 
 # set device
-torch.cuda.set_device(3)
+torch.cuda.set_device(2)
 DEVICE = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 flair.device = DEVICE
 

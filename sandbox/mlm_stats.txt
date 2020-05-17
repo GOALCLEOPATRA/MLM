@@ -1,0 +1,20 @@
+MLM v2 dataset stats:
+==>Num of data points: 254697
+==>Num of summaries: 1386967
+==>Num of images: 433589
+==>Size: 11G
+==>Zip Size: 9.1G
+
+MLM v1 dataset stats:
+==>Num of data points: 236496
+==>Num of summaries: 497899
+==>Num of images: 412422
+==>Size: 9.8G
+==>Zip Size: 8.8G
+
+MLM v1 sample dataset stats:
+==>Num of data points: 23640
+==>Num of summaries: 49338
+==>Num of images: 41043
+==>Size: 994M
+==>Zip Size: 886M

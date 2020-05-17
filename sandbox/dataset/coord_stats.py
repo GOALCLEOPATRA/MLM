@@ -2,35 +2,30 @@ import os
 import sys
 import time
 import json
+import argparse
 import numpy as np
 from pathlib import Path
 
-ROOT_PATH = Path(os.path.dirname(__file__)).parent #.parent.parent
+ROOT_PATH = Path(os.path.dirname(__file__)).parent.parent.parent
+# Add arguments to parser
+parser = argparse.ArgumentParser(description='Generate MLM entities')
+parser.add_argument('--dataset', default='MLM_v1_sample', type=str,
+                        choices=['MLM_v1', 'MLM_v1_sample', 'MLM_v2'], help='dataset')
+args = parser.parse_args()
 
+assert args.dataset in ['MLM_v1', 'MLM_v1_sample', 'MLM_v2']
 
-triple_paths = [ROOT_PATH / f'mlm_dataset/triples/triples_{i}.json' for i in range(1, 21)]
-images_paths = [ROOT_PATH / f'mlm_dataset/images/images_{i}.json' for i in range(1, 21)]
-unique_paths = [ROOT_PATH / f'mlm_dataset/unique/unique_{i}.json' for i in range(1, 21)]
-triples_keys = []
-images_keys = []
-unique_data = {}
-for i, path in enumerate([triple_paths, images_paths, unique_paths]):
-    for p in path:
-        with open(p) as json_file:
-            if i == 0: triples_keys.extend(list(json.load(json_file).keys()))
-            if i == 1: images_keys.extend(list(json.load(json_file).keys()))
-            if i == 2: unique_data.update(json.load(json_file))
-
-assert set(triples_keys) == set(images_keys)
-
-print(len(images_keys))
-print(len(unique_data.keys()))
+data = []
+for i in range(1, 21):
+    data_path = f'{str(ROOT_PATH)}/mlm_dataset/{args.dataset}/MLM_{i}/MLM_{i}.json'
+    with open(data_path) as json_file:
+        data.extend(json.load(json_file))
 
 coords = []
-for k in images_keys:
-    coord = unique_data[k]['coord'][unique_data[k]['coord'].find("(")+1:unique_data[k]['coord'].find(")")].split(' ')
+for d in data:
+    coord = d['coordinates']
     coord = np.array(coord, dtype=np.float32)
-    coords.append((coord[1], coord[0]))
+    coords.append((coord[0], coord[1]))
 
 print(len(coords))
 
@@ -53,9 +48,8 @@ import pycountry_convert as pc
 continents = []
 for i in iso:
     try:
-        if i != 'FR':
-            cont = pc.country_alpha2_to_continent_code(i)
-            continents.append(cont)
+        cont = pc.country_alpha2_to_continent_code(i)
+        continents.append(cont)
     except:
         if i == 'VA':
             continents.append('EU')
@@ -82,4 +76,4 @@ cont_sorted = {k: v for k, v in sorted(cont_dict.items(), key=lambda item: item[
 print(len(cont_sorted.keys()))
 
 print(f'EU: {cont_sorted["EU"]}')
-print(f'Other: {cont_sorted["NA"] + cont_sorted["AS"] + cont_sorted["AF"] + cont_sorted["SA"] + cont_sorted["OC"]}')
+print(f'Other: {cont_sorted["NA"] + cont_sorted["AS"] + cont_sorted["AF"] + cont_sorted["SA"] + cont_sorted["OC"] + cont_sorted["AQ"]}')

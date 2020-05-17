@@ -26,23 +26,24 @@ args = parser.parse_args()
 assert args.chunk in range(1, 21)
 
 # load data
-data_path = ROOT_PATH / f'mlm_dataset/images/images_{args.chunk}.json'
+data_path = ROOT_PATH / f'mlm_dataset/entities/entities_{args.chunk}.json'
 data = {}
 with open(data_path) as json_file:
     data = json.load(json_file)
 
 # create directory
-temp_path = ROOT_PATH / 'mlm_dataset/thumbnails_new/temp/'
-thumbnails_path = ROOT_PATH / f'mlm_dataset/thumbnails_new/thumbnails_{args.chunk}'
+temp_path = ROOT_PATH / 'mlm_dataset/thumbnails/temp/'
+thumbnails_path = ROOT_PATH / f'mlm_dataset/thumbnails/thumbnails_{args.chunk}'
 
 existing_imgs = [im.rsplit('/', 1)[-1].split('.', 1)[0] for im in glob(f'{thumbnails_path}/*')]
 
 data_with_images = {}
 count_images = 0
 tic = time.perf_counter()
-for i, id in enumerate(list(data.keys())):
+for i, d in enumerate(data):
+    id = d['id']
     print(f'Getting results for id {id}')
-    for j, image in enumerate(data[id]):
+    for j, image in enumerate(d['images']):
         # download original image
         # image = parse.unquote(image)
         name = image.rsplit('/', 1)[-1]
@@ -62,14 +63,14 @@ for i, id in enumerate(list(data.keys())):
                 continue
             if img_format == 'svg':
                 try:
-                    new_name = img_name.replace('.svg', '.png')
+                    new_name = img_name.replace('.svg', '_SVG.png')
                     cairosvg.svg2png(url=img_path, write_to=f'{temp_path}/{new_name}')
                     try:
                         os.remove(img_path) # delete image
                     except OSError:
                         print (f'---->Failed to delete {img_path}')
                         continue
-                    img_name = img_name.replace('.svg', '.png') # set new name as image name
+                    img_name = img_name.replace('.svg', '_SVG.png') # set new name as image name
                     img_path = f'{temp_path}/{new_name}' # set path the new image
                 except:
                     print(f'---->Failed converting {img_path} to PNG.')
@@ -102,10 +103,10 @@ for i, id in enumerate(list(data.keys())):
             print(f'---->Image format not supported: {img_format}')
 
     toc = time.perf_counter()
-    print(f'====> Finished id {id} -- {((i+1)/len(list(data.keys())))*100:.2f}% -- {toc - tic:0.2f}s')
+    print(f'====> Finished id {id} -- {((i+1)/len(data))*100:.2f}% -- {toc - tic:0.2f}s')
 
 print(f'------------------------------------------------------')
-print(f'Total items to download images: {len(list(data.keys()))}')
+print(f'Total items to download images: {len(data)}')
 print(f'We downloaded and resized {count_images} images')
 print(f'Finished chunk {args.chunk}')
 print(f'------------------------------------------------------')

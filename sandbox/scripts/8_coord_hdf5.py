@@ -5,6 +5,7 @@ import os
 import sys
 import json
 import h5py
+import argparse
 import numpy as np
 import s2sphere as s2
 from time import time
@@ -67,19 +68,37 @@ def gen_subcells(img_container_0, h_0, level, t_max):
 
 args_lvl_min = 2
 args_lvl_max = 10
-args_img_min = 0
-args_img_max = 1000
+args_img_min = 20
+args_img_max = 500
 
 ROOT_PATH = Path(os.path.dirname(__file__)).parent.parent.parent
+
+# Add arguments to parser
+parser = argparse.ArgumentParser(description='Generate MLM entities')
+parser.add_argument('--chunk', default=1, type=int, help='number of chunk')
+parser.add_argument('--dataset', default='MLM_v1', type=str,
+                        choices=['MLM_v1', 'MLM_v1_sample', 'MLM_v2'], help='dataset')
+parser.add_argument('--geo_representative', action='store_false')
+args = parser.parse_args()
+
+assert args.chunk in range(1, 21)
+assert args.dataset in ['MLM_v1', 'MLM_v1_sample', 'MLM_v2']
+
+# read ids if geo-representative
+geo_representative_ids = set()
+if args.geo_representative:
+    with open('eu_ids.json') as json_file:
+        geo_representative_ids = set(json.load(json_file))
 
 # load data
 img_container = []
 for i in range(1, 21):
-    data_path = f'{str(ROOT_PATH)}/mlm_dataset/MLM_dataset/MLM_{i}/MLM_{i}.json'
+    data_path = f'{str(ROOT_PATH)}/mlm_dataset/{args.dataset}/MLM_{i}/MLM_{i}.json'
     with open(data_path) as json_file:
         for d in json.load(json_file):
+            if args.geo_representative and d['id'] not in geo_representative_ids:
+                continue
             img_container.append([d['id'], float(d['coordinates'][0]), float(d['coordinates'][1])])
-
 
 num_images = len(img_container)
 print(f'{num_images} entities available.')
@@ -129,9 +148,16 @@ for i, (k, v) in enumerate(h.items()):
     }
 
 # write results
-HDF5_DIR = ROOT_PATH / f'mlm_dataset/hdf5/coordinates/coordinates.h5'
+if args.geo_representative:
+    HDF5_DIR = ROOT_PATH / f'mlm_dataset/hdf5/{args.dataset}/coordinates/coordinates_eu.h5'
+else:
+    HDF5_DIR = ROOT_PATH / f'mlm_dataset/hdf5/{args.dataset}/coordinates/coordinates.h5'
+
+# hex ids for http://s2.sidewalklabs.com/regioncoverer/
+hex_ids = []
 with h5py.File(HDF5_DIR, 'w') as h5f:
     for ic in img_container:
+        hex_ids.append(ic[3])
         one_hot = np.squeeze(np.eye(len(cell_classes.keys()))[np.array(cell_classes[ic[3]]['class']).reshape(-1)]).astype('float32')
         coordinates = np.array(cell_classes[ic[3]]['coordinates'], dtype='float32')
         # we save 2 values: one hot vector and coordinates
@@ -141,4 +167,5 @@ with h5py.File(HDF5_DIR, 'w') as h5f:
     # save keys as int
     h5f.create_dataset(name=f'ids', data=np.array([d[0] for d in img_container], dtype=np.int), compression="gzip", compression_opts=9)
 
+print(','.join(hex_ids))
 print('Done!')

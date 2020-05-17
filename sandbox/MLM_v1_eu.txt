@@ -1,0 +1,38 @@
+Total enttities: 23809
+-------------------
+RO -> required: 907, got: 728
+-------------------
+DE: 3880
+FR: 3132
+GB: 3115
+IT: 2822
+ES: 2193
+PL: 1776
+NL: 808
+RO: 728
+BE: 535
+GR: 501
+CZ: 496
+PT: 480
+SE: 477
+HU: 456
+AT: 415
+BG: 326
+DK: 271
+FI: 256
+SK: 254
+IE: 230
+HR: 189
+LT: 129
+SI: 98
+LV: 88
+EE: 62
+CY: 40
+LU: 28
+MT: 24
+-------------------
+EU countries: 28
+-------------------
+Number of classes: 99
+Number of entities: 23763
+-------------------
