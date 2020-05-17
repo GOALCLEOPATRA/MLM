@@ -5,6 +5,7 @@ import numpy as np
 from pathlib import Path
 from args import get_parser
 from more_itertools import unique_everseen
+from visdom import Visdom
 
 ROOT_PATH = Path(os.path.dirname(__file__))
 
@@ -31,7 +32,7 @@ class AverageMeter(object):
         self.avg = self.sum / self.count
 
 # ranking method for evaluating results
-def rank(opts, input_embeds, coord_embeds, ids):
+def rank(opts, input_embeds, coord_embeds, ids): # output of MLMRetrieval
     im_vecs = input_embeds
     coord_vecs = coord_embeds
     names = ids
@@ -94,5 +95,30 @@ def rank(opts, input_embeds, coord_embeds, ids):
     return np.average(glob_rank), glob_recall
 
 def save_checkpoint(state):
-    filename = f'{ROOT_PATH}/{args.snapshots}/Coord_Prediction_model_e{state["epoch"]}_v-{state["best_val"]:.2f}.pth.tar'
+    if state["task_id"] == "t1":
+        filename = f'{ROOT_PATH}/{args.snapshots}/T1_Img_Txt_model_e{state["epoch"]}_v-{state["medR"]:.2f}.pth.tar'
+    elif state["task_id"] == "t2":
+        filename = f'{ROOT_PATH}/{args.snapshots}/T2_Coord_Prediction_model_e{state["epoch"]}_v-{state["best_val"]:.2f}.pth.tar'
+    else:
+        filename = f'{ROOT_PATH}/{args.snapshots}/MTL_model_e{state["epoch"]}_t1-{state["t1_v"]:.2f}_t2-{state["t2_v"]:.2f}.pth.tar'
+
     torch.save(state, filename)
+
+# visualisations using visdom
+class VisdomLinePlotter(object):
+    """Plots to Visdom"""
+    def __init__(self, env_name='main'):
+        self.viz = Visdom()
+        self.env = env_name
+        self.plots = {}
+    def plot(self, var_name, split_name, title_name, x, y):
+        if var_name not in self.plots:
+            self.plots[var_name] = self.viz.line(X=np.array([x,x]), Y=np.array([y,y]), env=self.env, opts=dict(
+                legend=[split_name],
+                title=title_name,
+                xlabel='Epochs',
+                ylabel=var_name
+            ))
+            
+        else:
+            self.viz.line(X=np.array([x]), Y=np.array([y]), env=self.env, win=self.plots[var_name], name=split_name, update = 'append')

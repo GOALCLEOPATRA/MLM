@@ -1,3 +1,4 @@
+import torch
 import torch.nn as nn
 from args import get_parser
 
@@ -45,6 +46,22 @@ class LearnSummaries(nn.Module):
     def forward(self, x):
         return self.embedding(x.unsqueeze(1))
 
+# embed triples
+class LearnTriples(nn.Module):
+    def __init__(self, dropout=args.dropout):
+        super(LearnTriples, self).__init__()
+        self.embedding = nn.Sequential(
+            nn.LSTM(input_size=args.wikiDim, hidden_size=args.embDim, bidirectional=False, batch_first=True),
+            LstmFlatten(),
+            nn.ReLU(),
+            nn.Dropout(dropout),
+            nn.Linear(args.embDim, args.embDim),
+            Norm(),
+            # nn.LogSoftmax(dim=1)
+        )
+
+    def forward(self, x):
+        return self.embedding(x.unsqueeze(1))
 
 # MLM model
 class MLMRetrieval(nn.Module):
@@ -52,12 +69,20 @@ class MLMRetrieval(nn.Module):
         super(MLMRetrieval, self).__init__()
         self.learn_img      = LearnImages()
         self.learn_sum      = LearnSummaries()
+        self.learn_tri      = LearnTriples()
+        self.fc1 = torch.nn.Linear(args.embDim+args.embDim, args.embDim)
+        
 
-    def forward(self, input, sum):
-        # input embedding
+    def forward(self, input, sum, triple):
+        # input embeddings
         input_emb = self.learn_img(input)
-
-        # coord embedding
         sum_emb = self.learn_sum(sum)
+        tri_emb = self.learn_tri(triple)
+        
+        # text embedding
 
-        return [input_emb, sum_emb]
+        # combine text and triple
+        sum_tri_t1 = torch.cat((sum_emb, tri_emb), 1)
+        sum_tri_t1 = self.fc1(sum_tri_t1)
+
+        return [input_emb, sum_emb, sum_tri_t1]

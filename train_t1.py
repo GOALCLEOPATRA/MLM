@@ -6,10 +6,11 @@ import torch.optim
 import torch.nn as nn
 import numpy as np
 from pathlib import Path
+from visdom import Visdom
 from args import get_parser
-from models.model import MLMRetrieval
-from data.data_loader_cluster_coords import MLMLoader
-from utils import AverageMeter, rank, save_checkpoint, adjust_learning_rate
+from models.model_t1 import MLMRetrieval
+from data.data_loader_coord_cluster import MLMLoader
+from utils import AverageMeter, rank, save_checkpoint, VisdomLinePlotter
 
 ROOT_PATH = Path(os.path.dirname(__file__))
 
@@ -33,39 +34,21 @@ def main():
     model = MLMRetrieval()
     model.to(device)
 
-    # define loss function (criterion) and optimizer
+    # define loss function (criterion_t1) and optimizer
     # cosine similarity between embeddings -> input1, input2, target
-    criterion = nn.CosineEmbeddingLoss(margin=0.1).to(device)
-
-    # we can set two groups of parameters(one for each modality) and update one of those during training.
-    # the idea is after some epochs if there is no improvement on validation set
-    # then we switch and update the other parameters group. On group can be updated at a time.
-
-    # creating different parameter groups
-    # vision_params = list(map(id, model.img2vec.visionMLP.parameters()))
-    # base_params   = filter(lambda p: id(p) not in vision_params, model.parameters())
-
-    # optimizer - with lr initialized accordingly
-    # optimizer = torch.optim.Adam([
-    #             {'params': base_params},
-    #             {'params': model.img2vec.visionMLP.parameters(), 'lr': args.lr * args.freeVision }
-    #         ], lr=args.lr * args.freeText)
+    criterion_t1 = nn.CosineEmbeddingLoss(margin=0.1).to(device)
 
     # optimizer - one group parameters for now
     optimizer = torch.optim.Adam(model.parameters(), lr=args.lr)
 
-    if args.resume:
-        if os.path.isfile(args.resume):
-            print(f"=> loading checkpoint '{args.resume}''")
-            checkpoint = torch.load(args.resume)
-            args.start_epoch = checkpoint['epoch']
-            best_val = checkpoint['best_val']
-            model.load_state_dict(checkpoint['state_dict'])
-            optimizer.load_state_dict(checkpoint['optimizer'])
-            print(f"=> loaded checkpoint '{args.resume}' (epoch {checkpoint['epoch']})")
-        else:
-            print(f"=> no checkpoint found at '{args.resume}'")
-            best_val = float('inf')
+    if os.path.isfile(args.resume):
+        print(f"=> loading checkpoint '{args.resume}''")
+        checkpoint = torch.load(args.resume)
+        args.start_epoch = checkpoint['epoch']
+        best_val = checkpoint['best_val']
+        model.load_state_dict(checkpoint['state_dict'])
+        optimizer.load_state_dict(checkpoint['optimizer'])
+        print(f"=> loaded checkpoint '{args.resume}' (epoch {checkpoint['epoch']})")
     else:
         best_val = float('inf')
 
@@ -100,29 +83,37 @@ def main():
     for epoch in range(args.start_epoch, args.epochs):
 
         # train for one epoch
-        train(train_loader, model, criterion, optimizer, epoch)
+        train(train_loader, model, criterion_t1, optimizer, epoch)
 
         # evaluate on validation set
-        if (epoch+1) % args.valfreq == 0 and epoch != 0:
-            val_loss = validate(val_loader, model, criterion, epoch)
+        if (epoch+1) % args.valfreq == 0:
+            medR, recall = validate(val_loader, model, criterion_t1, epoch)
+            val_loss = medR
+            if val_loss < best_val:
+              best_val = min(val_loss, best_val)
 
 
             # save the best model
-            if val_loss < best_val:
-              best_val = min(val_loss, best_val)
-              save_checkpoint({
-                  'epoch': epoch + 1,
-                  'state_dict': model.state_dict(),
-                  'best_val': best_val,
-                  'optimizer': optimizer.state_dict(),
-                  'curr_val': val_loss})
+            save_checkpoint({
+                'task_id': task_id,
+                'epoch': epoch + 1,
+                'state_dict': model.state_dict(),
+                'best_val': best_val,
+                'medR': medR,
+                'optimizer': optimizer.state_dict(),
+                'curr_val': val_loss})
 
-            print(f'** Validation: {best_val} (best)')
+            print(f'**Val -- medR T1: {"%.4f" % medR} -- recall T1: {recall} -- medR T1 (best): {"%.4f" % best_val} (best)')
 
-def train(train_loader, model, criterion, optimizer, epoch):
+            # visualise
+            medR_loss_np = medR
+            plotter.plot('medR t1', 'val medR', 'Val medR for T1', epoch + 1, medR_loss_np)
+
+
+def train(train_loader, model, criterion_t1, optimizer, epoch):
     batch_time = AverageMeter()
     data_time = AverageMeter()
-    cos_losses = AverageMeter()
+    t1_losses = AverageMeter()
     top1 = AverageMeter()
     top5 = AverageMeter()
 
@@ -138,21 +129,24 @@ def train(train_loader, model, criterion, optimizer, epoch):
         # inputs
         input_img = torch.stack([train_input['image'][j].to(device) for j in range(len(train_input['image']))])
         input_summary = torch.stack([train_input['multi_wiki'][j].to(device) for j in range(len(train_input['multi_wiki']))])
+        input_tri =  torch.stack([train_input['triple'][j].to(device) for j in range(len(train_input['triple']))])
 
         # target
         target_var = torch.stack([train_input['target'][j].to(device) for j in range(len(train_input['target']))])
 
+        #print('target_var', target_var)
+
         # compute output
-        output = model(input_img, input_summary)
+        output = model(input_img, input_summary, input_tri)
 
         # compute loss
-        loss = criterion(output[0], output[1], target_var)
+        m_loss_t1 = criterion_t1(output[0], output[2], target_var)
         # measure performance and record loss
-        cos_losses.update(loss.data, input_img.size(0))
+        t1_losses.update(m_loss_t1.data, input_img.size(0))
 
         # compute gradient and do Adam step
         optimizer.zero_grad()
-        loss.backward()
+        m_loss_t1.backward()
         optimizer.step()
 
         # measure elapsed time
@@ -160,11 +154,15 @@ def train(train_loader, model, criterion, optimizer, epoch):
         end = time.time()
 
         print('-----------------------------------------------------------------------')
-        print(f'Epoch: {epoch+1} ----- Loss: {cos_losses.val:.4f} ({cos_losses.avg:.4f})')
+        print(f'Epoch: {epoch+1} ----- Loss: {t1_losses.val:.4f} ({t1_losses.avg:.4f}) - Batch done: {((i+1)/len(train_loader))*100:.2f}% - Time: {batch_time.sum:0.2f}s')
+    
+    # Visualise
+    t1_losses_np_avg = t1_losses.avg.cpu().numpy()
+    plotter.plot('loss t1', 'train t1', 'Loss for T1', epoch + 1, t1_losses_np_avg)
 
-def validate(val_loader, model, criterion, epoch):
+def validate(val_loader, model, criterion_t1, epoch):
     batch_time = AverageMeter()
-    cos_losses = AverageMeter()
+    t1_losses = AverageMeter()
 
     # switch to evaluate mode
     model.eval()
@@ -175,31 +173,35 @@ def validate(val_loader, model, criterion, epoch):
         # inputs
         input_img = torch.stack([val_input['image'][j].to(device) for j in range(len(val_input['image']))])
         input_summary = torch.stack( [val_input['multi_wiki'][j].to(device) for j in range(len(val_input['multi_wiki']))])
+        input_tri =  torch.stack([val_input['triple'][j].to(device) for j in range(len(val_input['triple']))])
 
         # ids
         ids = torch.stack([val_input['id'][j].to(device) for j in range(len(val_input['id']))])
 
         # compute output
-        output = model(input_img, input_summary)
+        output = model(input_img, input_summary, input_tri)
 
         if i==0:
             data0 = output[0].data.cpu().numpy()
-            data1 = output[1].data.cpu().numpy()
+            data1 = output[2].data.cpu().numpy()
             data2 = ids.data.cpu().numpy()
         else:
             data0 = np.concatenate((data0, output[0].data.cpu().numpy()), axis=0)
-            data1 = np.concatenate((data1, output[1].data.cpu().numpy()), axis=0)
+            data1 = np.concatenate((data1, output[2].data.cpu().numpy()), axis=0)
             data2 = np.concatenate((data2, ids.data.cpu().numpy()), axis=0)
 
     medR, recall = rank(args, data0, data1, data2)
 
-    print(f'* Val medR {medR:.4f} ----- Recall {recall}')
     # write validation results on txt file
     f = open(f'experiments/results/img2text.txt', 'a')
     f.write(f'Epoch {epoch}: * Val medR {medR:.4f} ----- Recall {recall}\n')
     f.close()
 
-    return medR
+    return medR, recall
 
 if __name__ == '__main__':
+    # identifier
+    task_id = 't1'
+    # visualise
+    plotter = VisdomLinePlotter()
     main()

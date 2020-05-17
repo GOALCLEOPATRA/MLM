@@ -7,9 +7,9 @@ import torch.nn as nn
 import numpy as np
 from pathlib import Path
 from args import get_parser
+from data.data_loader_coord_cluster import MLMLoader
+from models.model_t1 import MLMRetrieval
 from utils import AverageMeter, rank
-from data.data_loader import MLMLoader
-from models.model import MLMRetrieval
 
 ROOT_PATH = Path(os.path.dirname(__file__))
 
@@ -33,9 +33,9 @@ def main():
     model = MLMRetrieval()
     model.to(device)
 
-    # define loss function (criterion) and optimizer
+    # define loss function (criterion_t1) and optimizer
     # cosine similarity between embeddings -> input1, input2, target
-    criterion = nn.CosineEmbeddingLoss(margin=0.1).to(device)
+    criterion_t1 = nn.CosineEmbeddingLoss(margin=0.1).to(device)
 
     print(f"=> loading checkpoint '{args.model_path}'")
     if device.type=='cpu':
@@ -58,12 +58,12 @@ def main():
     print('Test loader prepared.')
 
     # run test
-    kff(test_loader, model, criterion)
+    kff(test_loader, model, criterion_t1)
 
-def kff(test_loader, model, criterion):
-# def test(test_loader, model, criterion):
+def kff(test_loader, model, criterion_t1):
+# def test(test_loader, model, criterion_t1):
     batch_time = AverageMeter()
-    cos_losses = AverageMeter()
+    t1_losses = AverageMeter()
 
     # switch to evaluate mode
     model.eval()
@@ -75,6 +75,7 @@ def kff(test_loader, model, criterion):
 
         input_img = torch.stack([test_input['image'][j].to(device) for j in range(len(test_input['image']))])
         input_summary = torch.stack([test_input['multi_wiki'][j].to(device) for j in range(len(test_input['multi_wiki']))])
+        input_tri =  torch.stack([test_input['triple'][j].to(device) for j in range(len(test_input['triple']))])
 
         # target
         target_var = torch.stack([test_input['target'][j].to(device) for j in range(len(test_input['target']))])
@@ -84,11 +85,11 @@ def kff(test_loader, model, criterion):
 
         # compute output
 
-        output = model(input_img, input_summary)
+        output = model(input_img, input_summary, input_tri)
         # compute loss
-        loss = criterion(output[0], output[1], target_var)
+        m_loss_t1 = criterion_t1(output[0], output[2], target_var)
         # measure performance and record loss
-        cos_losses.update(loss.data, input_img.size(0))
+        t1_losses.update(m_loss_t1.data, input_img.size(0))
 
         # measure elapsed time
         batch_time.update(time.time() - end)
@@ -96,16 +97,16 @@ def kff(test_loader, model, criterion):
 
         if i==0:
             data0 = output[0].data.cpu().numpy()
-            data1 = output[1].data.cpu().numpy()
+            data1 = output[2].data.cpu().numpy()
             data2 = ids.data.cpu().numpy()
         else:
             data0 = np.concatenate((data0, output[0].data.cpu().numpy()), axis=0)
-            data1 = np.concatenate((data1, output[1].data.cpu().numpy()), axis=0)
+            data1 = np.concatenate((data1, output[2].data.cpu().numpy()), axis=0)
             data2 = np.concatenate((data2, ids.data.cpu().numpy()), axis=0)
 
     medR, recall = rank(args, data0, data1, data2)
 
-    print(f'* Test loss {cos_losses.avg:.4f}')
+    print(f'* Test loss {t1_losses.avg:.4f}')
     print(f'** Test medR {medR:.4f} ----- Recall {recall}')
 
     with open(f'{ROOT_PATH}/{args.path_results}/img_embeds.pkl', 'wb') as f:
