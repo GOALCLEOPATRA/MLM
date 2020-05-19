@@ -4,6 +4,8 @@ import torch
 import numpy as np
 from pathlib import Path
 from args import get_parser
+from more_itertools import unique_everseen
+from visdom import Visdom
 
 ROOT_PATH = Path(os.path.dirname(__file__))
 
@@ -30,10 +32,9 @@ class AverageMeter(object):
         self.avg = self.sum / self.count
 
 # ranking method for evaluating results
-def rank(opts, img_embeds, text_embeds, ids):
-    type_embedding = opts.embtype
-    im_vecs = img_embeds
-    instr_vecs = text_embeds
+def rank(opts, input_embeds, coord_embeds, ids): # output of MLMRetrieval
+    im_vecs = input_embeds
+    coord_vecs = coord_embeds
     names = ids
 
     # Sort based on names to always pick same samples for medr
@@ -49,14 +50,11 @@ def rank(opts, img_embeds, text_embeds, ids):
 
     for i in range(10):
         ids = random.sample(range(0,len(names)), N)
-        im_sub = im_vecs[ids,:]
-        instr_sub = instr_vecs[ids,:]
+        input_sub = im_vecs[ids,:]
+        coord_sub = coord_vecs[ids,:]
         ids_sub = names[ids]
 
-        if type_embedding == 'image':
-            sims = np.dot(im_sub, instr_sub.T) # for im2text
-        else:
-            sims = np.dot(instr_sub, im_sub.T) # for text2im
+        sims = np.dot(input_sub, coord_sub.T) # for input2coord
 
         med_rank = []
         recall = {1:0.0, 5:0.0, 10:0.0}
@@ -69,47 +67,58 @@ def rank(opts, img_embeds, text_embeds, ids):
             # sort indices in descending order
             sorting = np.argsort(sim)[::-1].tolist()
 
-            # find where the index of the pair sample ended up in the sorting
-            pos = sorting.index(ii)
+            # we want unique index since we use coordinates ids
+            sorting = ids_sub[sorting].tolist()
+            sorting = list(unique_everseen(sorting))
 
-            if (pos+1) == 1:
-                recall[1]+=1
-            if (pos+1) <=5:
-                recall[5]+=1
-            if (pos+1)<=10:
-                recall[10]+=1
+            # find where the index of the pair sample ended up in the sorting
+            pos = sorting.index(name)
+
+            if (pos+1) == 1: recall[1] += 1
+            if (pos+1) <= 5: recall[5] += 1
+            if (pos+1) <= 10: recall[10] += 1
 
             # store the position
             med_rank.append(pos+1)
 
+        unique_coord_num = len(list(unique_everseen(ids_sub)))
         for i in recall.keys():
-            recall[i]=recall[i]/N
-
-        med = np.median(med_rank)
-        # print "median", med
+            recall[i]=recall[i]/unique_coord_num
 
         for i in recall.keys():
             glob_recall[i]+=recall[i]
-        glob_rank.append(med)
+        glob_rank.append(np.median(med_rank))
 
     for i in glob_recall.keys():
-        glob_recall[i] = format(glob_recall[i]/10, '.4f')
+        glob_recall[i] = format(glob_recall[i]/10, '.2f')
 
     return np.average(glob_rank), glob_recall
 
-def save_checkpoint(state, filename='checkpoint.pth.tar'):
-    filename = f'{ROOT_PATH}/{args.snapshots}/model_e{state["epoch"]}_v-{state["best_val"]:.4f}.pth.tar'
+def save_checkpoint(state):
+    if state["task_id"] == "t1":
+        filename = f'{ROOT_PATH}/{args.snapshots}/T1_Img_Txt_model_e{state["epoch"]}_v-{state["medR"]:.2f}.pth.tar'
+    elif state["task_id"] == "t2":
+        filename = f'{ROOT_PATH}/{args.snapshots}/T2_Coord_Prediction_model_e{state["epoch"]}_v-{state["best_val"]:.2f}.pth.tar'
+    else:
+        filename = f'{ROOT_PATH}/{args.snapshots}/MTL_model_e{state["epoch"]}_t1-{state["t1_v"]:.2f}_t2-{state["t2_v"]:.2f}.pth.tar'
+
     torch.save(state, filename)
 
-def adjust_learning_rate(optimizer, epoch, opts):
-    """Switching between modalities"""
-    # parameters corresponding to the rest of the network
-    optimizer.param_groups[0]['lr'] = opts.lr * opts.freeText
-    # parameters corresponding to visionMLP
-    optimizer.param_groups[1]['lr'] = opts.lr * opts.freeVision
-
-    print(f'Initial base params lr: {optimizer.param_groups[0]["lr"]}')
-    print(f'Initial vision lr: {optimizer.param_groups[1]["lr"]}')
-
-    # after first modality change we set patience to 3
-    opts.patience = 3
+# visualisations using visdom
+class VisdomLinePlotter(object):
+    """Plots to Visdom"""
+    def __init__(self, env_name='main'):
+        self.viz = Visdom()
+        self.env = env_name
+        self.plots = {}
+    def plot(self, var_name, split_name, title_name, x, y):
+        if var_name not in self.plots:
+            self.plots[var_name] = self.viz.line(X=np.array([x,x]), Y=np.array([y,y]), env=self.env, opts=dict(
+                legend=[split_name],
+                title=title_name,
+                xlabel='Epochs',
+                ylabel=var_name
+            ))
+            
+        else:
+            self.viz.line(X=np.array([x]), Y=np.array([y]), env=self.env, win=self.plots[var_name], name=split_name, update = 'append')

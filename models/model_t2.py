@@ -71,45 +71,11 @@ class LearnTriples(nn.Module):
             nn.Dropout(dropout),
             nn.Linear(args.embDim, args.embDim),
             Norm()
-            
+            # nn.LogSoftmax(dim=1)
         )
 
     def forward(self, x):
         return self.embedding(x.unsqueeze(1))
-
-# mtl model
-class L2Joint(nn.Module):
-    def __init__(self):
-        super(L2Joint, self).__init__()
-        self.mml_emp = torch.Tensor([True, False])
-        self.n_mml = len(self.mml_emp)
-        self.log_vars = torch.nn.Parameter(torch.zeros(self.n_mml))
-        self.cos = nn.CosineEmbeddingLoss()
-        self.cen = nn.CrossEntropyLoss()
-        self.t1_wa = torch.Tensor(1).requires_grad_(True)
-        self.t2_wa = torch.Tensor(1).requires_grad_(True)
-
-    def forward(self, t1_a_i, t2_a_i, target_var, cluster_target, t1_c_i, t2_c_i):
-
-        t1 = self.cos(t1_a_i, t1_c_i, target_var)
-        t2_a = self.cen(t2_a_i, cluster_target)
-        t2_b = self.cen(t2_c_i, cluster_target)
-        t2 = t2_a+t2_b
-
-        # weighted average
-        mm_losses = torch.stack((t1, t2))
-        dtype = mm_losses.dtype
-        device = mm_losses.device
-        stds = (torch.exp(self.log_vars)**(1/2)).to(device).to(dtype)
-        weights = 1 / ((self.mml_emp.to(device).to(dtype)+1)*(stds**2))
-        wa_losses = weights*mm_losses + torch.log(stds)
-        wa_losses_mn = wa_losses.mean()
-        t1_wa = wa_losses[0]
-        t2_wa = wa_losses[1]
-        out = (wa_losses_mn, t1_wa, t2_wa)
-   
-        return out
-
 
 # MLM model
 class MLMRetrieval(nn.Module):
@@ -119,9 +85,7 @@ class MLMRetrieval(nn.Module):
         self.learn_sum      = LearnSummaries()
         self.image_coord    = CoordNet()
         self.learn_tri      = LearnTriples()
-        self.fc1 = torch.nn.Linear(args.embDim+args.embDim, args.embDim)
-        self.fc2 = torch.nn.Linear(args.coordDim+args.coordDim, args.coordDim)
-
+        self.fc1 = torch.nn.Linear(args.coordDim+args.coordDim, args.coordDim)
 
     def forward(self, input, sum, triple):
         # input embeddings
@@ -132,14 +96,10 @@ class MLMRetrieval(nn.Module):
         # coord embedding
         img_coord = self.image_coord(img_emb)
         txt_coord = self.image_coord(sum_emb)
-        tri_coord = self.image_coord(tri_emb)        
+        tri_coord = self.image_coord(tri_emb) 
 
-        # combine text and triple
-        # task 1
-        txt_triple = torch.cat((sum_emb, tri_emb), 1)
-        txt_triple = self.fc1(txt_triple)
         # task 2
         txt_coord_triple = torch.cat((txt_coord, tri_coord), 1)
-        txt_coord_triple = self.fc2(txt_coord_triple)
+        txt_coord_triple = self.fc1(txt_coord_triple)
 
-        return [img_emb, img_coord, txt_triple, txt_coord_triple]
+        return [img_coord, txt_coord, txt_coord_triple]

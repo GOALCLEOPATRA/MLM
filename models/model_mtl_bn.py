@@ -36,6 +36,7 @@ class LearnImages(nn.Module):
             nn.Conv1d(in_channels=args.imgDim, out_channels=args.embDim, kernel_size=1),
             nn.Flatten(),
             nn.ReLU(),
+            nn.BatchNorm1d(args.embDim),
             nn.Linear(args.embDim, args.embDim),
             nn.Tanh(),
             Norm()
@@ -52,6 +53,7 @@ class LearnSummaries(nn.Module):
             nn.LSTM(input_size=args.wikiDim, hidden_size=args.embDim, bidirectional=False, batch_first=True),
             LstmFlatten(),
             nn.ReLU(),
+            nn.BatchNorm1d(args.embDim),
             nn.Linear(args.embDim, args.embDim),
             nn.Tanh(),
             Norm()
@@ -68,6 +70,7 @@ class LearnTriples(nn.Module):
             nn.LSTM(input_size=args.wikiDim, hidden_size=args.embDim, bidirectional=False, batch_first=True),
             LstmFlatten(),
             nn.ReLU(),
+            nn.BatchNorm1d(args.embDim),
             nn.Dropout(dropout),
             nn.Linear(args.embDim, args.embDim),
             Norm()

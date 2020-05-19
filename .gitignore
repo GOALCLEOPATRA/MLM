@@ -4,3 +4,7 @@ models/__pycache__/
 experiments/results/*
 experiments/snapshots/*
 dataset/*
+data/test.h5
+data/train.h5
+data/val.h5
+data/h5_read.py

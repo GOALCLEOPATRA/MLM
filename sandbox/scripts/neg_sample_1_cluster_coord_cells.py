@@ -1,46 +1,72 @@
 from pathlib import Path
 import h5py
 import os
-import time
 import numpy as np
 import json
-import argparse
-
-# Add arguments to parser
-parser = argparse.ArgumentParser(description='Generate MLM entities')
-parser.add_argument('--dataset', default='MLM_v1_eu', type=str,
-                        choices=['MLM_v1', 'MLM_v1_sample', 'MLM_v1_eu', 'MLM_v2'], help='dataset')
-args = parser.parse_args()
 
 ROOT_PATH = Path(os.path.dirname(__file__)).parent.parent
-
-train = h5py.File(os.path.join(ROOT_PATH, f'dataset/{args.dataset}/train.h5'), 'r')
-test = h5py.File(os.path.join(ROOT_PATH, f'dataset/{args.dataset}/test.h5'), 'r')
-val = h5py.File(os.path.join(ROOT_PATH, f'dataset/{args.dataset}/val.h5'), 'r')
-
-all_hdf5 = {
-    'train': train,
-    'val': val,
-    'test': test
-}
-
-all_ids = [('train', list(train['ids'])), ('val', list(val['ids'])), ('test', list(test['ids']))]
+train = h5py.File(f'{ROOT_PATH}/data/train.h5', 'r')
+test = h5py.File(f'{ROOT_PATH}/data/test.h5', 'r')
+val = h5py.File(f'{ROOT_PATH}/data/val.h5', 'r')
+all_ids = [('train', train['ids']), ('val', val['ids']), ('test', test['ids'])]
 
 def save_file(fileName, file):
     with open(fileName, 'w') as outfile:
-        json.dump(file, outfile, ensure_ascii=False, indent=4)
+        json.dump(file, outfile)
 
-clusters = {cell: [] for cell in range(0, len(list(train[f'{list(all_ids[0][1])[0]}_onehot'][()])))}
 
-tic = time.perf_counter()
-for part, ids in all_ids:
-    hdf5 = all_hdf5[part]
-    for i, id in enumerate(ids):
-        onehot = hdf5[f'{id}_onehot'][()]
-        clusters[np.argmax(onehot)].append(int(id))
-        toc = time.perf_counter()
-        print(f'====> Finished id {id} -- {((i+1)/len(ids))*100:.2f}% -- {toc - tic:0.2f}s -- {part}')
-    save_file(f'clusters_{part}', clusters)
-    for value in clusters.values(): del value[:] # clear dict values for next part
+def open_json(fileName):
+    try:
+        with open(fileName,encoding='utf8') as json_data:
+            d = json.load(json_data)
+    except Exception as s:
+        d=s
+        print(d)
+    return d
 
-print('Done!')
+
+def find_n_cells():
+    max_cls = 0
+    for id_type in all_ids:
+
+        for i, id in enumerate(id_type[1]):
+            if id_type[0] == 'train':
+                onehot = train[f'{id}_onehot'][()]
+            elif id_type[0] == 'test':
+                onehot = test[f'{id}_onehot'][()]
+            else:
+                onehot = val[f'{id}_onehot'][()]
+            cls = np.argmax(onehot)
+            if cls > max_cls:
+                max_cls = cls
+    return max_cls + 1
+
+
+def cluster_coord_cells(n_cells, file, _ids,part):
+    print('********** '+part)
+    cells = range(0, n_cells)
+    clusters = {}
+
+    for cell in cells:
+
+        are_this_cell = []
+
+        for id in _ids:
+            onehot = file[f'{id}_onehot'][()]
+            cls = np.argmax(onehot)
+            if cls == cell:
+                are_this_cell.append(int(id))
+
+        clusters[cell] = are_this_cell
+        print(cell, len(are_this_cell))
+
+    save_file('clusters_'+str(part), clusters)
+
+
+# n_cells = find_n_cells()
+# print(n_cells)
+n_cells = 116
+cluster_coord_cells(n_cells, train, train['ids'],'train' )
+cluster_coord_cells(n_cells, test, test['ids'],'test' )
+cluster_coord_cells(n_cells, val, val['ids'],'val' )
+print('done!')
