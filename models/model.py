@@ -14,15 +14,16 @@ class LstmFlatten(nn.Module):
     def forward(self, x):
         return x[0].squeeze(1)
 
+# coord network
 class CoordNet(nn.Module):
-    def __init__(self, tags=args.coordDim, dropout=args.dropout):
+    def __init__(self, tags=args.cell_dim, dropout=args.dropout):
         super(CoordNet, self).__init__()
         self.coord_net = nn.Sequential(
-            nn.Linear(args.embDim, args.embDim),
+            nn.Linear(args.emb_dim, args.emb_dim),
             nn.ReLU(),
             nn.Flatten(),
             nn.Dropout(dropout),
-            nn.Linear(args.embDim, tags)
+            nn.Linear(args.emb_dim, tags)
         )
 
     def forward(self, x):
@@ -33,10 +34,10 @@ class LearnImages(nn.Module):
     def __init__(self):
         super(LearnImages, self).__init__()
         self.embedding = nn.Sequential(
-            nn.Conv1d(in_channels=args.imgDim, out_channels=args.embDim, kernel_size=1),
+            nn.Conv1d(in_channels=args.img_dim, out_channels=args.emb_dim, kernel_size=1),
             nn.Flatten(),
             nn.ReLU(),
-            nn.Linear(args.embDim, args.embDim),
+            nn.Linear(args.emb_dim, args.emb_dim),
             nn.Tanh(),
             Norm()
         )
@@ -49,10 +50,10 @@ class LearnSummaries(nn.Module):
     def __init__(self):
         super(LearnSummaries, self).__init__()
         self.embedding = nn.Sequential(
-            nn.LSTM(input_size=args.wikiDim, hidden_size=args.embDim, bidirectional=False, batch_first=True),
+            nn.LSTM(input_size=args.smr_dim, hidden_size=args.emb_dim, bidirectional=False, batch_first=True),
             LstmFlatten(),
             nn.ReLU(),
-            nn.Linear(args.embDim, args.embDim),
+            nn.Linear(args.emb_dim, args.emb_dim),
             nn.Tanh(),
             Norm()
         )
@@ -65,41 +66,49 @@ class LearnTriples(nn.Module):
     def __init__(self, dropout=args.dropout):
         super(LearnTriples, self).__init__()
         self.embedding = nn.Sequential(
-            nn.LSTM(input_size=args.wikiDim, hidden_size=args.embDim, bidirectional=False, batch_first=True),
+            nn.LSTM(input_size=args.smr_dim, hidden_size=args.emb_dim, bidirectional=False, batch_first=True),
             LstmFlatten(),
             nn.ReLU(),
             nn.Dropout(dropout),
-            nn.Linear(args.embDim, args.embDim),
+            nn.Linear(args.emb_dim, args.emb_dim),
             Norm()
-            # nn.LogSoftmax(dim=1)
         )
 
     def forward(self, x):
         return self.embedding(x.unsqueeze(1))
 
-# MLM model
-class MLMRetrieval(nn.Module):
+# MLM Baseline model
+class MLMBaseline(nn.Module):
     def __init__(self):
-        super(MLMRetrieval, self).__init__()
-        self.learn_img      = LearnImages()
-        self.learn_sum      = LearnSummaries()
-        self.image_coord    = CoordNet()
-        self.learn_tri      = LearnTriples()
-        self.fc1 = torch.nn.Linear(args.coordDim+args.coordDim, args.coordDim)
+        super(MLMBaseline, self).__init__()
+        self.learn_img  = LearnImages()
+        self.learn_sum  = LearnSummaries()
+        self.learn_tri  = LearnTriples()
+        self.coord_net  = CoordNet()
+        self.fc1        = torch.nn.Linear(args.emb_dim + args.emb_dim, args.emb_dim)
+        self.fc2        = torch.nn.Linear(args.cell_dim + args.cell_dim, args.cell_dim)
 
-    def forward(self, input, sum, triple):
+    def forward(self, image, summary, triple):
         # input embeddings
-        img_emb = self.learn_img(input)
-        sum_emb = self.learn_sum(sum)
+        img_emb = self.learn_img(image)
+        sum_emb = self.learn_sum(summary)
         tri_emb = self.learn_tri(triple)
 
         # coord embedding
-        img_coord = self.image_coord(img_emb)
-        txt_coord = self.image_coord(sum_emb)
-        tri_coord = self.image_coord(tri_emb) 
+        img_coord = self.coord_net(img_emb)
+        txt_coord = self.coord_net(sum_emb)
+        tri_coord = self.coord_net(tri_emb)
 
-        # task 2
+        # combine text and triple
+        # task IR
+        txt_triple = torch.cat((sum_emb, tri_emb), 1)
+        txt_triple = self.fc1(txt_triple)
+
+        # task LE
         txt_coord_triple = torch.cat((txt_coord, tri_coord), 1)
-        txt_coord_triple = self.fc1(txt_coord_triple)
+        txt_coord_triple = self.fc2(txt_coord_triple)
 
-        return [img_coord, txt_coord, txt_coord_triple]
+        return {
+            'ir': [img_emb, txt_triple],
+            'le': [img_coord, txt_coord_triple]
+        }

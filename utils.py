@@ -2,16 +2,17 @@ import os
 import random
 import torch
 import numpy as np
+import torch.nn as nn
 from pathlib import Path
-from args import get_parser
-from more_itertools import unique_everseen
 from visdom import Visdom
-
-ROOT_PATH = Path(os.path.dirname(__file__))
+from args import get_parser
 
 # read parser
 parser = get_parser()
 args = parser.parse_args()
+
+# set device
+device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
 # meter class for storing results
 class AverageMeter(object):
@@ -32,17 +33,13 @@ class AverageMeter(object):
         self.avg = self.sum / self.count
 
 # ranking method for evaluating results
-def rank(opts, input_embeds, coord_embeds, ids): # output of MLMRetrieval
-    im_vecs = input_embeds
-    coord_vecs = coord_embeds
-    names = ids
-
+def rank(img_embeds, text_embeds, names):
     # Sort based on names to always pick same samples for medr
     idxs = np.argsort(names)
     names = names[idxs]
 
     # Ranker
-    N = opts.medr
+    N = args.medr
     idxs = range(N)
 
     glob_rank = []
@@ -50,11 +47,14 @@ def rank(opts, input_embeds, coord_embeds, ids): # output of MLMRetrieval
 
     for i in range(10):
         ids = random.sample(range(0,len(names)), N)
-        input_sub = im_vecs[ids,:]
-        coord_sub = coord_vecs[ids,:]
+        im_sub = img_embeds[ids,:]
+        instr_sub = text_embeds[ids,:]
         ids_sub = names[ids]
 
-        sims = np.dot(input_sub, coord_sub.T) # for input2coord
+        if args.emb_type == 'image':
+            sims = np.dot(im_sub, instr_sub.T) # for im2text
+        else:
+            sims = np.dot(instr_sub, im_sub.T) # for text2im
 
         med_rank = []
         recall = {1:0.0, 5:0.0, 10:0.0}
@@ -67,42 +67,79 @@ def rank(opts, input_embeds, coord_embeds, ids): # output of MLMRetrieval
             # sort indices in descending order
             sorting = np.argsort(sim)[::-1].tolist()
 
-            # we want unique index since we use coordinates ids
-            sorting = ids_sub[sorting].tolist()
-            sorting = list(unique_everseen(sorting))
-
             # find where the index of the pair sample ended up in the sorting
-            pos = sorting.index(name)
+            pos = sorting.index(ii)
 
-            if (pos+1) == 1: recall[1] += 1
-            if (pos+1) <= 5: recall[5] += 1
-            if (pos+1) <= 10: recall[10] += 1
+            if (pos+1) == 1:
+                recall[1]+=1
+            if (pos+1) <=5:
+                recall[5]+=1
+            if (pos+1)<=10:
+                recall[10]+=1
 
             # store the position
             med_rank.append(pos+1)
 
-        unique_coord_num = len(list(unique_everseen(ids_sub)))
         for i in recall.keys():
-            recall[i]=recall[i]/unique_coord_num
+            recall[i]=recall[i]/N
+
+        med = np.median(med_rank)
 
         for i in recall.keys():
             glob_recall[i]+=recall[i]
-        glob_rank.append(np.median(med_rank))
+        glob_rank.append(med)
 
     for i in glob_recall.keys():
-        glob_recall[i] = format(glob_recall[i]/10, '.2f')
+        glob_recall[i] = format(glob_recall[i]/10, '.4f')
 
     return np.average(glob_rank), glob_recall
 
-def save_checkpoint(state):
-    if state["task_id"] == "t1":
-        filename = f'{ROOT_PATH}/{args.snapshots}/T1_Img_Txt_model_e{state["epoch"]}_v-{state["medR"]:.2f}.pth.tar'
-    elif state["task_id"] == "t2":
-        filename = f'{ROOT_PATH}/{args.snapshots}/T2_Coord_Prediction_model_e{state["epoch"]}_v-{state["best_val"]:.2f}.pth.tar'
-    else:
-        filename = f'{ROOT_PATH}/{args.snapshots}/MTL_model_e{state["epoch"]}_t1-{state["t1_v"]:.2f}_t2-{state["t2_v"]:.2f}.pth.tar'
-
+def save_checkpoint(state, path):
+    filename = f'{path}/epoch_{state["epoch"]}_loss_{state["val_loss"]:.2f}.pth.tar'
     torch.save(state, filename)
+
+class IRLoss(nn.Module):
+    '''Information Retrieval Loss'''
+    def __init__(self):
+        super().__init__()
+        self.criterion = nn.CosineEmbeddingLoss(margin=0.1).to(device)
+
+    def forward(self, output, target):
+        return self.criterion(output['ir'][0], output['ir'][1], target['ir'])
+
+class LELoss(nn.Module):
+    '''Location Estimation Loss'''
+    def __init__(self):
+        super().__init__()
+        self.criterion = nn.CrossEntropyLoss()
+
+    def forward(self, output, target):
+        return self.criterion(output['le'][0], target['le']) + self.criterion(output['le'][1], target['le'])
+
+class MTLLoss(nn.Module):
+    '''Multi Task Learning Loss'''
+    def __init__(self):
+        super().__init__()
+        self.ir_loss = IRLoss()
+        self.le_loss = LELoss()
+
+        self.mml_emp = torch.Tensor([True, False])
+        self.log_vars = torch.nn.Parameter(torch.zeros(len(self.mml_emp)))
+
+    def forward(self, output, target):
+        task_losses = torch.stack((self.ir_loss(output, target), self.le_loss(output, target)))
+        dtype = task_losses.dtype
+
+        # weighted loss
+        stds = (torch.exp(self.log_vars)**(1/2)).to(device).to(dtype)
+        weights = 1 / ((self.mml_emp.to(device).to(dtype)+1)*(stds**2))
+        losses = weights * task_losses + torch.log(stds)
+
+        return {
+            'ir': losses[0],
+            'le': losses[1],
+            'mtl': losses.mean()
+        }
 
 # visualisations using visdom
 class VisdomLinePlotter(object):
@@ -119,6 +156,6 @@ class VisdomLinePlotter(object):
                 xlabel='Epochs',
                 ylabel=var_name
             ))
-            
+
         else:
             self.viz.line(X=np.array([x]), Y=np.array([y]), env=self.env, win=self.plots[var_name], name=split_name, update = 'append')
