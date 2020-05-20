@@ -9,14 +9,7 @@ from pathlib import Path
 from args import get_parser
 from models.model import MLMBaseline
 from data.data_loader import MLMLoader
-from utils import IRLoss, LELoss, MTLLoss, AverageMeter, rank, save_checkpoint
-
-# define models
-# models = {
-#     'ir': MLMBaseline,
-#     'le': MLMBaseline,
-#     'mtl': MLMBaseline
-# }
+from utils import IRLoss, LELoss, MTLLoss, AverageMeter, rank, classify, save_checkpoint
 
 # define criterions
 criterions = {
@@ -92,7 +85,7 @@ def main():
 
     logger.info('Training loader prepared.')
 
-    # prepared validation loader
+    # prepare validation loader
     val_loader = torch.utils.data.DataLoader(
         MLMLoader(data_path=f'{ROOT_PATH}/{args.data_path}', partition='val'),
         batch_size=args.batch_size,
@@ -238,24 +231,17 @@ def validate(val_loader, model, criterion):
     }
 
     if args.task in ['ir', 'mtl']:
-        medR, recall = rank(data0, data1, data2)
-        results['log']['medR'] = medR
-        results['log']['Recall'] = ' - '.join([f'{k}: {v}' for k, v in recall.items()])
+        rank_results = rank(data0, data1, data2)
+        results['log']['IR Median Rank'] = rank_results['median_rank']
+        results['log']['IR Precision'] = ' - '.join([f'{k}: {v}' for k, v in rank_results['precision'].items()])
+        results['log']['IR Recall'] = ' - '.join([f'{k}: {v}' for k, v in rank_results['recall'].items()])
+        results['log']['IR F1 score'] = ' - '.join([f'{k}: {v}' for k, v in rank_results['f1_score'].items()])
+        results['log']['IR Mean'] = ' - '.join([f'{k}: {v}' for k, v in rank_results['mean'].items()])
 
     if args.task in ['le', 'mtl']:
-        le_img = [p for pred in le_img for p in pred]
-        le_txt = [p for pred in le_txt for p in pred]
-
-        img_top1 = sum([1 if p[0] in p[1] else 0 for p in le_img])/len(le_img)
-        img_top5 = sum([1 if p[0] in p[2] else 0 for p in le_img])/len(le_img)
-        img_top10 = sum([1 if p[0] in p[3] else 0 for p in le_img])/len(le_img)
-
-        txt_top1 = sum([1 if p[0] in p[1] else 0 for p in le_txt])/len(le_txt)
-        txt_top5 = sum([1 if p[0] in p[2] else 0 for p in le_txt])/len(le_txt)
-        txt_top10 = sum([1 if p[0] in p[3] else 0 for p in le_txt])/len(le_txt)
-
-        results['log']['LE Image'] = f'Top@1: {img_top1:.2f} - Top@5: {img_top5:.2f} - Top@10: {img_top10:.2f}'
-        results['log']['LE Text'] = f'Top@1: {txt_top1:.2f} - Top@5: {txt_top5:.2f} - Top@10: {txt_top10:.2f}'
+        classify_results = classify(le_img, le_txt)
+        results['log']['LE Image'] = ' - '.join([f'{k}: {v}' for k, v in classify_results['image'].items()])
+        results['log']['LE Text'] = ' - '.join([f'{k}: {v}' for k, v in classify_results['text'].items()])
 
     return results
 

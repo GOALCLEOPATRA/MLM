@@ -37,10 +37,11 @@ def get_parser():
 
     # test
     parser.add_argument('--path_results', default='experiments/results', type=str)
-    parser.add_argument('--model_path', default='experiments/snapshots/MLM_v1_sample/mtl/epoch_49_loss_1.94.pth.tar', type=str)
+    parser.add_argument('--model_path', default='experiments/snapshots/MLM_v1/mtl/', type=str)
 
     # MedR / Recall@1 / Recall@5 / Recall@10
     parser.add_argument('--emb_type', default='image', type=str) # [image|text] query type
     parser.add_argument('--medr', default=500, type=int)
+    parser.add_argument('--rank_times', default=10, type=int)
 
     return parser

@@ -6,6 +6,7 @@ import torch.nn as nn
 from pathlib import Path
 from visdom import Visdom
 from args import get_parser
+from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_score
 
 # read parser
 parser = get_parser()
@@ -43,9 +44,10 @@ def rank(img_embeds, text_embeds, names):
     idxs = range(N)
 
     glob_rank = []
-    glob_recall = {1:0.0, 5:0.0, 10:0.0}
+    glob_recall = {i+1: 0.0 for i in range(10)}
+    glob_precision = {i+1: 0.0 for i in range(10)}
 
-    for i in range(10):
+    for i in range(args.rank_times):
         ids = random.sample(range(0,len(names)), N)
         im_sub = img_embeds[ids,:]
         instr_sub = text_embeds[ids,:]
@@ -57,7 +59,8 @@ def rank(img_embeds, text_embeds, names):
             sims = np.dot(instr_sub, im_sub.T) # for text2im
 
         med_rank = []
-        recall = {1:0.0, 5:0.0, 10:0.0}
+        recall = {i+1: 0.0 for i in range(10)}
+        precision = {i+1: 0.0 for i in range(10)}
 
         for ii in idxs:
             name = ids_sub[ii]
@@ -70,29 +73,94 @@ def rank(img_embeds, text_embeds, names):
             # find where the index of the pair sample ended up in the sorting
             pos = sorting.index(ii)
 
-            if (pos+1) == 1:
-                recall[1]+=1
-            if (pos+1) <=5:
-                recall[5]+=1
-            if (pos+1)<=10:
-                recall[10]+=1
-
             # store the position
             med_rank.append(pos+1)
 
+            # recall
+            for k in precision.keys():
+                if (pos+1) <= k:
+                    recall[k] += 1
+
+            # precision - we consider that we retrieve 10 samples
+            relevance = [1 if i == pos else 0 for i in range(10)]
+            for k in precision.keys():
+                precision[k] += np.mean((np.asarray(relevance)[:k] != 0))
+
+        # save median rank for every run
+        glob_rank.append(np.median(med_rank))
+
+        # update recall for every run
         for i in recall.keys():
-            recall[i]=recall[i]/N
+            recall[i] = recall[i]/N
+            glob_recall[i] += recall[i]
 
-        med = np.median(med_rank)
+        # update precision for every run
+        for k in precision.keys():
+            precision[k] = precision[k]/N
+            glob_precision[k] += precision[k]
 
-        for i in recall.keys():
-            glob_recall[i]+=recall[i]
-        glob_rank.append(med)
-
+    # calculate final recall values
     for i in glob_recall.keys():
-        glob_recall[i] = format(glob_recall[i]/10, '.4f')
+        glob_recall[i] = glob_recall[i]/args.rank_times
 
-    return np.average(glob_rank), glob_recall
+    # calculate final precision values
+    for k in precision.keys():
+        glob_precision[k] = glob_precision[k]/args.rank_times
+
+    # calculate ranking metrics
+    mean_precision = np.mean(np.asarray(list(glob_precision.values())).astype(np.float))
+    mean_recall = np.mean(np.asarray(list(glob_recall.values())).astype(np.float))
+    mean_f1score = 2 * (mean_precision * mean_recall) / (mean_precision + mean_recall)
+
+    return {
+        'median_rank': np.average(glob_rank),
+        'precision': {
+            'P@1': format(glob_precision[1], '.4f'),
+            'P@5': format(glob_precision[5], '.4f'),
+            'P@10': format(glob_precision[10], '.4f'),
+        },
+        'recall': {
+            'R@1': format(glob_recall[1], '.4f'),
+            'R@5': format(glob_recall[5], '.4f'),
+            'R@10': format(glob_recall[10], '.4f')
+        },
+        'f1_score': {
+            'F1@1':  format(2 * (glob_precision[1] * glob_recall[1]) / (glob_precision[1] + glob_recall[1]), '.4f'),
+            'F1@5':  format(2 * (glob_precision[5] * glob_recall[5]) / (glob_precision[5] + glob_recall[5]), '.4f'),
+            'F1@10': format(2 * (glob_precision[10] * glob_recall[10]) / (glob_precision[10] + glob_recall[10]), '.4f')
+        },
+        'mean': {
+            'Precision': format(mean_precision, '.4f'),
+            'Recall': format(mean_recall, '.4f'),
+            'F1_score': format(mean_f1score, '.4f')
+        }
+    }
+
+def classify(le_img, le_txt):
+    # flatten lists
+    le_img = [p for pred in le_img for p in pred]
+    le_txt = [p for pred in le_txt for p in pred]
+
+    # extract targets and top predictions for both image and text
+    trg_img = [p[0].item() for p in le_img]
+    top1_img = [p[1].item() for p in le_img]
+    trg_txt = [p[0].item() for p in le_txt]
+    top1_txt = [p[1].item() for p in le_txt]
+
+    return {
+        'image': {
+            'Accuracy': format(accuracy_score(trg_img, top1_img), '.4f'),
+            'Precision': format(precision_score(trg_img, top1_img, average='weighted'), '.4f'),
+            'Recall': format(recall_score(trg_img, top1_img, average='weighted'), '.4f'),
+            'F1 score': format(f1_score(trg_img, top1_img, average='weighted'), '.4f')
+        },
+        'text': {
+            'Accuracy': format(accuracy_score(trg_txt, top1_txt), '.4f'),
+            'Precision': format(precision_score(trg_txt, top1_txt, average='weighted'), '.4f'),
+            'Recall': format(recall_score(trg_txt, top1_txt, average='weighted'), '.4f'),
+            'F1 score': format(f1_score(trg_txt, top1_txt, average='weighted'), '.4f')
+        }
+    }
 
 def save_checkpoint(state, path):
     filename = f'{path}/epoch_{state["epoch"]}_loss_{state["val_loss"]:.2f}.pth.tar'
