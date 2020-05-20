@@ -58,7 +58,7 @@ Location estimation task
 python test.py --task le
 ```
 
-All logs and checkpoints will be saved under the [experiments](experiments) folder.
+All logs and checkpoints will be saved under the experiments folder.
 
 ### Files for location and scene embeddings
 
