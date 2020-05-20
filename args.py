@@ -8,7 +8,7 @@ def get_parser():
     parser.add_argument('--no-cuda', action='store_true')
 
     # data
-    parser.add_argument('--data_path', default='data/MLM_v1_sample')
+    parser.add_argument('--data_path', default='data/MLM_v1')
     parser.add_argument('--workers', default=0, type=int)
 
     # model
@@ -21,7 +21,7 @@ def get_parser():
     # MLM model
     parser.add_argument('--emb_dim', default=1024, type=int)
     parser.add_argument('--img_dim', default=4096, type=int)
-    parser.add_argument('--cell_dim', default=116, type=int)
+    parser.add_argument('--cell_dim', default=990, type=int)
     parser.add_argument('--smr_dim', default=3072, type=int)
     parser.add_argument('--tpl_dim', default=2048, type=int)
     parser.add_argument('--dropout', default=0.1, type=float)
