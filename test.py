@@ -33,7 +33,7 @@ logging.basicConfig(format='%(asctime)s %(name)-12s %(levelname)-8s %(message)s'
                     datefmt='%d/%m/%Y %I:%M:%S %p',
                     level=logging.INFO,
                     handlers=[
-                        logging.FileHandler(f'{logging_path}/train.log', 'w'),
+                        logging.FileHandler(f'{logging_path}/test.log', 'w'),
                         logging.StreamHandler()
                     ])
 logger = logging.getLogger(__name__)
