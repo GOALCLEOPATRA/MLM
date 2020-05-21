@@ -84,7 +84,9 @@ def rank(img_embeds, text_embeds, names):
             # precision - we consider that we retrieve 10 samples
             relevance = [1 if i == pos else 0 for i in range(10)]
             for k in precision.keys():
-                precision[k] += np.mean((np.asarray(relevance)[:k] != 0))
+                # precision[k] += np.mean((np.asarray(relevance)[:k] != 0))
+                if (pos+1) <= k:
+                    precision[k] += ((1/k) * (k+1 - pos+1)) # gradually increace from k to 1
 
         # save median rank for every run
         glob_rank.append(np.median(med_rank))

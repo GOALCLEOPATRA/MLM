@@ -1,14 +1,14 @@
 import os
 import time
 import random
-import logging
 import torch
+import logging
 import numpy as np
 import torch.nn as nn
 from pathlib import Path
 from args import get_parser
-from data.data_loader import MLMLoader
 from models.model import MLMBaseline
+from data.data_loader import MLMLoader
 from utils import IRLoss, LELoss, MTLLoss, AverageMeter, rank, classify
 
 # define criterions
@@ -144,10 +144,7 @@ def test(val_loader, model, criterion):
     if args.task in ['ir', 'mtl']:
         rank_results = rank(data0, data1, data2)
         results['log']['IR Median Rank'] = rank_results['median_rank']
-        results['log']['IR Precision'] = ' - '.join([f'{k}: {v}' for k, v in rank_results['precision'].items()])
         results['log']['IR Recall'] = ' - '.join([f'{k}: {v}' for k, v in rank_results['recall'].items()])
-        results['log']['IR F1 score'] = ' - '.join([f'{k}: {v}' for k, v in rank_results['f1_score'].items()])
-        results['log']['IR Mean'] = ' - '.join([f'{k}: {v}' for k, v in rank_results['mean'].items()])
 
     if args.task in ['le', 'mtl']:
         classify_results = classify(le_img, le_txt)
