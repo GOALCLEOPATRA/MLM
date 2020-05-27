@@ -11,8 +11,8 @@ from models.model import MLMBaseline
 from data.data_loader import MLMLoader
 from utils import IRLoss, LELoss, MTLLoss, AverageMeter, rank, classify
 
-# define criterions
-criterions = {
+# define criteria
+criteria = {
     'ir': IRLoss,
     'le': LELoss,
     'mtl': MTLLoss
@@ -55,7 +55,7 @@ def main():
     model.to(device)
 
     # define loss function
-    criterion = criterions[args.task]()
+    criterion = criteria[args.task]()
 
     logger.info(f"=> loading checkpoint '{args.model_path}'")
     if device.type == 'cpu':

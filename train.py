@@ -11,8 +11,8 @@ from models.model import MLMBaseline
 from data.data_loader import MLMLoader
 from utils import IRLoss, LELoss, MTLLoss, AverageMeter, rank, classify, save_checkpoint
 
-# define criterions
-criterions = {
+# define criteria
+criteria = {
     'ir': IRLoss,
     'le': LELoss,
     'mtl': MTLLoss
@@ -58,7 +58,7 @@ def main():
     model.to(device)
 
     # define loss function and optimizer
-    criterion = criterions[args.task]()
+    criterion = criteria[args.task]()
 
     # optimizer
     optimizer = torch.optim.Adam(model.parameters(), lr=args.lr)
