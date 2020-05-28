@@ -8,7 +8,7 @@ def get_parser():
     parser.add_argument('--no-cuda', action='store_true')
 
     # data
-    parser.add_argument('--data_path', default='data/MLM_v1')
+    parser.add_argument('--data_path', default='data/MLM_v1') # Full: MLM_v1, Geo: MLM_v1_eu
     parser.add_argument('--workers', default=0, type=int)
 
     # model
@@ -21,7 +21,7 @@ def get_parser():
     # MLM model
     parser.add_argument('--emb_dim', default=1024, type=int)
     parser.add_argument('--img_dim', default=4096, type=int)
-    parser.add_argument('--cell_dim', default=990, type=int)
+    parser.add_argument('--cell_dim', default=990, type=int) # Full: 990, Geo: 99
     parser.add_argument('--smr_dim', default=3072, type=int)
     parser.add_argument('--tpl_dim', default=2048, type=int)
     parser.add_argument('--dropout', default=0.1, type=float)
@@ -37,7 +37,7 @@ def get_parser():
 
     # test
     parser.add_argument('--path_results', default='experiments/results', type=str)
-    parser.add_argument('--model_path', default='experiments/snapshots/MLM_v1/mtl/', type=str)
+    parser.add_argument('--model_name', default='epoch_100_loss_2.42.pth.tar', type=str)
 
     # MedR / Recall@1 / Recall@5 / Recall@10
     parser.add_argument('--emb_type', default='image', type=str) # [image|text] query type

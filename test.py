@@ -57,14 +57,15 @@ def main():
     # define loss function
     criterion = criteria[args.task]()
 
-    logger.info(f"=> loading checkpoint '{args.model_path}'")
+    model_path = f'{ROOT_PATH}/{args.snapshots}/{args.data_path.split("/")[-1]}/{args.task}/{args.model_name}'
+    logger.info(f"=> loading checkpoint '{model_path}'")
     if device.type == 'cpu':
-        checkpoint = torch.load(f'{ROOT_PATH}/{args.model_path}', encoding='latin1', map_location='cpu')
+        checkpoint = torch.load(model_path, encoding='latin1', map_location='cpu')
     else:
-        checkpoint = torch.load(f'{ROOT_PATH}/{args.model_path}', encoding='latin1')
+        checkpoint = torch.load(model_path, encoding='latin1')
     args.start_epoch = checkpoint['epoch']
     model.load_state_dict(checkpoint['state_dict'])
-    logger.info(f"=> loaded checkpoint '{args.model_path}' (epoch {checkpoint['epoch']})")
+    logger.info(f"=> loaded checkpoint '{model_path}' (epoch {checkpoint['epoch']})")
 
     # prepare test loader
     test_loader = torch.utils.data.DataLoader(
