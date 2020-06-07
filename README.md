@@ -29,7 +29,7 @@ pip install -r requirements.txt
 Download the dataset hdf5 files from [here](https://zenodo.org/record/3822551) and place them under the [data](data) folder.
 
 ### Train tasks
-Multi-task Learning (IR & LE)
+Multi-task Learning (IR + LE)
 ``` bash
 python train.py --task mtl
 ```
@@ -47,7 +47,7 @@ python train.py --task le
 For providing other arguments (e.g. epochs, batch size, dropout) please check [args.py](args.py).
 
 ### Test tasks
-Multi-task Learning (IR & LE)
+Multi-task Learning (IR + LE)
 ``` bash
 python test.py --task mtl
 ```
