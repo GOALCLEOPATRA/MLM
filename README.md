@@ -6,6 +6,7 @@ Multiple Languages and Modalities (MLM) is a dataset consisting of text in three
 The resource is designed to evaluate multitask learning systems that conducts the following core tasks:
 - Information retrieval (IR)
 - Location estimation (LE)
+
 IR+LE is an architecture for a baseline multitask learning system with two objectives to learn on multiple modalities and languages. The pipeline for IR extends a system proposed by Marin et al for cross-modal retrieval:
 http://im2recipe.csail.mit.edu/im2recipe-journal.pdf
 
