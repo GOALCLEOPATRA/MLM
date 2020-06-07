@@ -7,7 +7,7 @@ The resource is designed to evaluate multitask learning systems that conducts th
 - Information retrieval (IR)
 - Location estimation (LE)
 
-IR+LE is an architecture for a baseline multitask learning system with two objectives to learn on multiple modalities and languages. The pipeline for IR extends a system proposed by Marin et al for cross-modal retrieval:
+IR+LE is an architecture for a baseline multitask learning system with two objectives to learn on multiple modalities and languages. The pipeline for IR extends a system proposed by Marin et al for cross-modal information retrieval:
 http://im2recipe.csail.mit.edu/im2recipe-journal.pdf
 
 
