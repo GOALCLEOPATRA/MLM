@@ -134,7 +134,7 @@ def train(train_loader, model, criterion, optimizer, epoch):
         # inputs
         images = torch.stack([train_input['image'][j].to(device) for j in range(len(train_input['image']))])
         summaries = torch.stack([train_input['summary'][j].to(device) for j in range(len(train_input['summary']))])
-        triples = torch.stack([train_input['triple'][j].to(device) for j in range(len(train_input['triple']))])
+        classes = torch.stack([train_input['classes'][j].to(device) for j in range(len(train_input['classes']))])
 
         # target
         target = {
@@ -143,7 +143,7 @@ def train(train_loader, model, criterion, optimizer, epoch):
         }
 
         # compute output
-        output = model(images, summaries, triples)
+        output = model(images, summaries, classes)
 
         # compute loss
         loss = criterion(output, target)
@@ -184,7 +184,7 @@ def validate(val_loader, model, criterion):
         # inputs
         images = torch.stack([val_input['image'][j].to(device) for j in range(len(val_input['image']))])
         summaries = torch.stack([val_input['summary'][j].to(device) for j in range(len(val_input['summary']))])
-        triples = torch.stack([val_input['triple'][j].to(device) for j in range(len(val_input['triple']))])
+        classes = torch.stack([val_input['classes'][j].to(device) for j in range(len(val_input['classes']))])
 
         # target
         target = {
@@ -194,7 +194,7 @@ def validate(val_loader, model, criterion):
         }
 
         # compute output
-        output = model(images, summaries, triples)
+        output = model(images, summaries, classes)
 
         # compute loss
         loss = criterion(output, target)

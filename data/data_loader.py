@@ -46,20 +46,20 @@ class MLMLoader(data.Dataset):
 
         # Other modalities remain unchanged
         all_smr = self.h5f[f'{instanceId}_summaries'][()]
-        all_tpl = self.h5f[f'{instanceId}_classes'][()]
+        all_cls = self.h5f[f'{instanceId}_classes'][()]
         cell_id = self.h5f[f'{instanceId}_onehot'][()]
 
         if self.partition == 'train':
-            # for training we sample random image, summary and triple for the given id
+            # for training we sample random image, summary and classes for the given id
             image = all_img[np.random.choice(range(all_img.shape[0]))]
             summary = all_smr[np.random.choice(range(all_smr.shape[0]))]
-            triple = all_tpl[np.random.choice(range(all_tpl.shape[0]))]
+            classes = all_cls[np.random.choice(range(all_cls.shape[0]))]
         else:
             # for test and validation select the first example for images and triples
             # for summaries we set a counter since we have 3 languages (en, de, fr)
             image = all_img[0]
             summary = all_smr[self.smr_counter] if self.smr_counter < all_smr.shape[0] else all_smr[0]
-            triple = all_tpl[0]
+            classes = all_cls[0]
 
             # update summary counter
             self.smr_counter = 0 if self.smr_counter == 2 else self.smr_counter + 1
@@ -68,7 +68,7 @@ class MLMLoader(data.Dataset):
             'id': instanceId,
             'image': image,
             'summary': summary,
-            'triple': triple,
+            'classes': classes,
             'target_ir': target,
             'target_le': np.argmax(cell_id)
         }

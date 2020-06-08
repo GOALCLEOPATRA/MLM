@@ -77,7 +77,7 @@ def rank(img_embeds, text_embeds, names):
             med_rank.append(pos+1)
 
             # recall
-            for k in precision.keys():
+            for k in recall.keys():
                 if (pos+1) <= k:
                     recall[k] += 1
 

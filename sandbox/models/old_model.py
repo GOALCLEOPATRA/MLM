@@ -62,9 +62,9 @@ class LearnSummaries(nn.Module):
         return self.embedding(x.unsqueeze(1))
 
 # embed triples
-class LearnClasses(nn.Module):
+class LearnTriples(nn.Module):
     def __init__(self, dropout=args.dropout):
-        super(LearnClasses, self).__init__()
+        super(LearnTriples, self).__init__()
         self.embedding = nn.Sequential(
             nn.LSTM(input_size=args.smr_dim, hidden_size=args.emb_dim, bidirectional=False, batch_first=True),
             LstmFlatten(),
@@ -81,36 +81,34 @@ class LearnClasses(nn.Module):
 class MLMBaseline(nn.Module):
     def __init__(self):
         super(MLMBaseline, self).__init__()
-        self.learn_img      = LearnImages()
-        self.learn_sum      = LearnSummaries()
-        self.coord_net      = CoordNet()
-
-        self.learn_cls      = LearnClasses()
-        self.fc1            = torch.nn.Linear(args.emb_dim + args.emb_dim, args.emb_dim)
-        self.fc2            = torch.nn.Linear(args.cell_dim + args.cell_dim, args.cell_dim)
+        self.learn_img  = LearnImages()
+        self.learn_sum  = LearnSummaries()
+        self.learn_tri  = LearnTriples()
+        self.coord_net  = CoordNet()
+        self.fc1        = torch.nn.Linear(args.emb_dim + args.emb_dim, args.emb_dim)
+        self.fc2        = torch.nn.Linear(args.cell_dim + args.cell_dim, args.cell_dim)
 
     def forward(self, image, summary, triple):
         # input embeddings
         img_emb = self.learn_img(image)
         sum_emb = self.learn_sum(summary)
+        tri_emb = self.learn_tri(triple)
 
         # coord embedding
         img_coord = self.coord_net(img_emb)
-        sum_coord = self.coord_net(sum_emb)
+        txt_coord = self.coord_net(sum_emb)
+        tri_coord = self.coord_net(tri_emb)
 
-        # task ir
-        cls_emb = self.learn_cls(triple)
-        sum_cls = torch.cat((sum_emb, cls_emb), 1)
-        sum_cls = self.fc1(sum_cls)
-        ir = [img_emb, sum_cls]
+        # combine text and triple
+        # task IR
+        txt_triple = torch.cat((sum_emb, tri_emb), 1)
+        txt_triple = self.fc1(txt_triple)
 
-        # task le
-        cls_coord = self.coord_net(cls_emb)
-        sum_cls_coord = torch.cat((sum_coord, cls_coord), 1)
-        sum_cls_coord = self.fc2(sum_cls_coord)
-        le = [img_coord, sum_cls_coord]
+        # task LE
+        txt_coord_triple = torch.cat((txt_coord, tri_coord), 1)
+        txt_coord_triple = self.fc2(txt_coord_triple)
 
         return {
-            'ir': ir,
-            'le': le
+            'ir': [img_emb, txt_triple],
+            'le': [img_coord, txt_coord_triple]
         }
