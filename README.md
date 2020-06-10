@@ -10,11 +10,9 @@ The resource is designed to evaluate the strengths of multitask learning systems
 IR+LE is an architecture for a multitask learning system designed as a baseline for the above benchmark. The pipeline for cross-modal retrieval extends a system proposed by Marin et al:
 http://im2recipe.csail.mit.edu/im2recipe-journal.pdf.
 
-Multitask IR+LE Framework
+*Multitask IR+LE Framework*
 
-![alt text](https://github.com/GOALCLEOPATRA/MLM/blob/mlm_baseline/ir+le.png?raw=true)
-
-![GitHub Logo](/ir+le.png)
+![system](/ir+le.png)
 
 ## IR+LE System and MLM Dataset 
 ### Requirements and Setup
