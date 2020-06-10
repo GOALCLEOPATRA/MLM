@@ -3,12 +3,13 @@
 ## About
 
 Multiple Languages and Modalities (MLM) is a dataset consisting of text in three languages (EN, DE, FR), images, location data, and triple classes.
-The resource is designed to evaluate multitask learning systems that conduct the following core tasks:
+The resource is designed to evaluate the strengths of multitask learning systems in generalising on diverse data. The paper (publication pending) defines a benchmark evaluation consisting of the following tasks:
 - Cross-modal retrieval
 - Location estimation
 
-IR+LE is an architecture for a baseline multitask learning system that learns on multiple modalities and languages to perform the above tasks. The pipeline for cross-modal retrieval extends a system proposed by Marin et al:
+IR+LE is an architecture for a multitask learning system designed as a baseline for the above benchmark. The pipeline for cross-modal retrieval extends a system proposed by Marin et al:
 http://im2recipe.csail.mit.edu/im2recipe-journal.pdf
+
 
 
 ## IR+LE System and MLM Dataset 
