@@ -11,7 +11,7 @@ IR+LE is an architecture for a baseline multitask learning system that learns on
 http://im2recipe.csail.mit.edu/im2recipe-journal.pdf
 
 
-## Multitask IR+LE System and MLM Dataset 
+## IR+LE System and MLM Dataset 
 ### Requirements and Setup
 Python version >= 3.7
 
