@@ -14,6 +14,8 @@ Multitask IR+LE Framework
 
 ![alt text](https://github.com/GOALCLEOPATRA/MLM/blob/mlm_baseline/ir+le.png?raw=true)
 
+![GitHub Logo](/ir+le.png)
+
 ## IR+LE System and MLM Dataset 
 ### Requirements and Setup
 Python version >= 3.7
