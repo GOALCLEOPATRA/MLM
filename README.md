@@ -2,7 +2,7 @@
 
 ## About
 
-Multiple Languages and Modalities (MLM) is a dataset consisting of text in three languages (EN, DE, FR), images, location data, and triple classes.
+Multiple Languages and Modalities (MLM) is a dataset consisting of text in three languages (EN, FR, DE), images, location data, and triple classes.
 The resource is designed to evaluate the strengths of multitask learning systems in generalising on diverse data. The paper (publication pending) defines a benchmark evaluation consisting of the following tasks:
 - Cross-modal retrieval
 - Location estimation
