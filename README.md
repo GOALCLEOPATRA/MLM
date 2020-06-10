@@ -3,15 +3,15 @@
 ## About
 
 Multiple Languages and Modalities (MLM) is a dataset consisting of text in three languages (EN, DE, FR), images, location data, and triple classes.
-The resource is designed to evaluate multitask learning systems that conducts the following core tasks:
-- Information retrieval (IR)
-- Location estimation (LE)
+The resource is designed to evaluate multitask learning systems that conduct the following core tasks:
+- Cross-modal retrieval
+- Location estimation
 
-IR+LE is an architecture for a baseline multitask learning system with two objectives to learn on multiple modalities and languages. The pipeline for IR extends a system proposed by Marin et al for cross-modal information retrieval:
+IR+LE is an architecture for a baseline multitask learning system that learns on multiple modalities and languages to perform the above tasks. The pipeline for cross-modal retrieval extends a system proposed by Marin et al:
 http://im2recipe.csail.mit.edu/im2recipe-journal.pdf
 
 
-## Set Up
+## Multitask IR+LE System and MLM Dataset 
 ### Requirements and Setup
 Python version >= 3.7
 
@@ -34,7 +34,7 @@ Multi-task Learning (IR + LE)
 python train.py --task mtl
 ```
 
-Information retrieval task
+Cross-modal retrieval task
 ``` bash
 python train.py --task ir
 ```
@@ -44,7 +44,7 @@ Location estimation task
 python train.py --task le
 ```
 
-For providing other arguments (e.g. epochs, batch size, dropout) please check [args.py](args.py).
+For setting other arguments (e.g. epochs, batch size, dropout), please check [args.py](args.py).
 
 ### Test tasks
 Multi-task Learning (IR + LE)
