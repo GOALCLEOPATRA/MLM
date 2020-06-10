@@ -12,7 +12,7 @@ http://im2recipe.csail.mit.edu/im2recipe-journal.pdf.
 
 Multitask IR+LE Framework
 
-%![alt text](https://github.com/GOALCLEOPATRA/MLM/blob//image.jpg?raw=true)
+![alt text](https://github.com/GOALCLEOPATRA/MLM//mlm_baseline/ir+le.jpg?raw=true)
 
 ## IR+LE System and MLM Dataset 
 ### Requirements and Setup
