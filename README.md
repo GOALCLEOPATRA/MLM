@@ -56,7 +56,7 @@ Multi-task Learning (IR + LE)
 python test.py --task mtl
 ```
 
-Information retrieval task
+Cross-modal retrieval task
 ``` bash
 python test.py --task ir
 ```
