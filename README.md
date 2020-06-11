@@ -39,6 +39,10 @@ Download the dataset hdf5 files from [here](https://zenodo.org/record/3885753) a
 | MLM-irle-gr	|   18002	|  2243	| 2256
 | ------------ | ------------ | ------------ | ------------ |
 
+Attempt | #1 | #2 | #3 | #4
+--- | --- | --- | --- |--- 
+Seconds | 301 | 283 | 290 | 286 | 
+
 ### Train tasks
 Multitask Learning (IR + LE)
 ``` bash
