@@ -68,10 +68,6 @@ python test.py --task le
 
 All logs and checkpoints will be saved under the experiments folder.
 
-### Files for location and scene embeddings
-
-https://tib.eu/cloud/s/SWNckCMgdxSMXR7
-
 ## License
 The repository is under [MIT License](LICENSE).
 
