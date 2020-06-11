@@ -32,18 +32,6 @@ pip install -r requirements.txt
 
 Download the dataset hdf5 files from [here](https://zenodo.org/record/3885753) and place them under the [data](data) folder.
 
------------- | ------------ | ------------ | ------------ |
-		| Train		| Valid		| Test |	
-| ------------ | ------------ | ------------ | ------------ |
-| MLM-irle      | 174944  | 21868 | 21869
-| MLM-irle-gr	|   18002	|  2243	| 2256
-| MLM-irle-gr	|   18002	|  2243	| 2256
-
-
- | Train | Valid | Test | 
-MLM-irle | 174944 | 21868 | 21869 |--- 
-Seconds | 301 | 283 | 290 | 286 | 
-
 ### Train tasks
 Multitask Learning (IR + LE)
 ``` bash
