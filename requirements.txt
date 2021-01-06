@@ -7,7 +7,7 @@ Werkzeug==1.0.0
 numpy==1.18.2
 flair==0.4.5
 s2sphere==0.2.5
-CairoSVG==2.4.2
+CairoSVG==2.5.1
 python_resize_image==1.1.19
 Flask==1.1.1
 pycountry_convert==0.7.2
