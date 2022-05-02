@@ -17,7 +17,7 @@ import torchvision.transforms as transforms
 from location_verification.location_embedding import GeoEstimator
 from scene_classification.scene_embedding import SceneClassificator
 ROOT_PATH = Path(os.path.dirname(__file__)).parent.parent.parent
-# ldf = C:/Users/TahmasebzadehG/PycharmProjects/InfoRetrieval
+
 model_path_sc = "./resources/scene_classification/resnet50_places365.pth.tar"
 hierarchy = "./resources/scene_classification/scene_hierarchy_places365.csv"
 labels = "./resources/scene_classification/categories_places365.txt"
