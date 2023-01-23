@@ -75,5 +75,11 @@ The repository is under [MIT License](LICENSE).
 
 ## Cite
 ``` bash
-Coming Soon!
+@inproceedings{armitage2020mlm,
+  title={Mlm: a benchmark dataset for multitask learning with multiple languages and modalities},
+  author={Armitage, Jason and Kacupaj, Endri and Tahmasebzadeh, Golsa and Maleshkova, Maria and Ewerth, Ralph and Lehmann, Jens},
+  booktitle={Proceedings of the 29th ACM International Conference on Information \& Knowledge Management},
+  pages={2967--2974},
+  year={2020}
+}
 ```
